@@ -15,7 +15,7 @@ def call_embree(data):
   start_time = time.time()
   subprocess.call([bin_path,
                        "-i", "crown/crown.xml",
-                       "-o", "out/out-%d-%d.ppm" % (i, j),
+                       "-o", "out/out-%04d-%04d.ppm" % (i, j),
                        "--size", str(size[0]), str(size[1]),
                        "--vp", str(eye[0]), str(eye[1]), str(eye[2]),
                        "--vi", str(at[0]), str(at[1]), str(at[2]),
@@ -64,8 +64,8 @@ right = np.array([V[0, 0:3]])
 light_rotation = gm.rotate(rotation_speed / 10.0, right.transpose())
 print("rotation = %s" % str(rotation))
 
-num_camera_samples = 100
-num_light_samples = 10
+num_camera_samples = 1000
+num_light_samples = 1
 bin_path = "/usr/bin/embree3/pathtracer"
 samples = {}
 for i in range(num_camera_samples):
@@ -92,7 +92,7 @@ for i in range(num_camera_samples):
 start_rendering = time.time()
 pool = Pool(processes = 4)
 pool.map(call_embree, [(i, j, samples, \
-                       "crown/crown.xml", "out/out-%d-%d.ppm" % (i, j), \
+                       "crown/crown.xml", "out/out-%04d-%04d.ppm" % (i, j), \
                        isa, num_threads, verbose) \
                        for i in range(num_camera_samples) \
                        for j in range(num_light_samples)])
@@ -113,7 +113,7 @@ for i in range(num_camera_samples):
   print("eye = %s" % str(eye))
   subprocess.call([bin_path,
                        "-i", "crown/crown.xml",
-                       "-o", "out/normal%d.ppm" % (i),
+                       "-o", "out/normal_%04d.ppm" % (i),
                        "--size", str(size[0, 0]), str(size[0, 1]),
                        "--vp", str(eye[0, 0]), str(eye[0, 1]), str(eye[0, 2]),
                        "--vi", str(at[0, 0]), str(at[0, 1]), str(at[0, 2]),
