@@ -1,13 +1,5 @@
 #!/usr/bin/env python3
-import torch
-import torchvision
 from torch import nn
-from torch.autograd import Variable
-from torch.utils.data import DataLoader
-from torchvision import transforms
-from torchvision.utils import save_image
-import os
-import normal_dataset
 
 class NormalModel(nn.Module):
     def __init__(self):

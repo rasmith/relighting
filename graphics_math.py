@@ -12,7 +12,7 @@ def perspective(fovy, aspect, near, far):
   return matrix
 
 def lookat(eye, at, up):
-  z_direction = eye[0:3, 0] - at[0:3, 0];
+  z_direction = eye[0:3, 0] - at[0:3, 0]
   z_direction = z_direction / np.linalg.norm(z_direction)
   x_direction = np.cross(up[0:3, 0] / np.linalg.norm(up[0:3, 0]), z_direction)
   x_direction = x_direction / np.linalg.norm(x_direction)
@@ -33,4 +33,19 @@ def rotate(angle, axis):
   matrix = np.eye(4, 4, dtype = np.float)
   matrix[0:3, 0:3] = R
   return matrix
+
+def quaternion(m):
+  cos_theta = 0.5 * (np.trace(m) - 1)
+  sin_theta = np.sqrt(1.0 - cos_theta * cos_theta)
+  theta = np.arccos(cos_theta)
+  x = 0.5 * m[2, 1] - m[1, 2] / sin_theta
+  y = 0.5 * m[0, 2] - m[2, 0] / sin_theta
+  z = 0.5 * m[1, 0] - m[0, 1] / sin_theta
+  v = np.array([x, y, z])
+  v = v / np.linalg.norm(v)
+  c = np.cos(0.5 * theta)
+  s = np.sin(0.5 * theta)
+  q = np.array([c, v[0] * s, v[1] * s, v[2] * s])
+  return q
+  
 
