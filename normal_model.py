@@ -20,6 +20,7 @@ class NormalModel(nn.Module):
             nn.ConvTranspose2d(8, 3, 2, stride=2, padding=1),  # b, 1, 28, 28
             nn.Tanh()
         )
+        
 
     def encode(self, x):
       x = self.encoder(x)
