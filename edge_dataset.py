@@ -4,6 +4,7 @@ import torch
 import torch.utils.data as data
 from PIL import Image
 import graphics_math
+import re
 
 class EdgeDataset(data.Dataset):
     def __init__(self, input_dir, cfg_file, image_dir, edge_dir, transform = None,\
@@ -11,7 +12,7 @@ class EdgeDataset(data.Dataset):
         self.cfg_file = cfg_file
         self.input_dir = input_dir 
         self.image_dir = image_dir
-        self.edge_dir = image_dir
+        self.edge_dir = edge_dir 
         self.transform = transform
         self.target_transform = target_transform 
         self.cfg = cfg.read_cfg(input_dir, cfg_file)

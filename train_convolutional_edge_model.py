@@ -12,8 +12,8 @@ import convolutional_edge_model
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-if not os.path.exists('./dc_img'):
-    os.mkdir('./dc_img')
+if not os.path.exists('./dc_img_edges'):
+    os.mkdir('./dc_img_edges')
 
 
 def to_img(x):
@@ -30,13 +30,14 @@ learning_rate = 1e-3
 cfg_file = 'config.cfg'
 input_dir = '.'
 image_dir = 'out'
+edges_dir = 'edges'
 trans = transforms.Compose([transforms.ToTensor(), \
                             transforms.Normalize((0.5,), (1.0,))])
-dataset = edge_dataset.NormalDataset(input_dir, cfg_file, image_dir,\
-                                        trans, trans)
+dataset = edge_dataset.EdgeDataset(input_dir, cfg_file, image_dir,\
+                                        edges_dir, trans, trans)
 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-model = convolutional_edge_model.ConvolutionalNormalModel().cuda()
+model = convolutional_edge_model.ConvolutionalEdgeModel().cuda()
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                              weight_decay=1e-5)
@@ -58,6 +59,6 @@ for epoch in range(num_epochs):
           .format(epoch+1, num_epochs, loss.data[0]))
     if epoch % 10 == 0:
         pic = to_img(output.cpu().data)
-        save_image(pic, './dc_img/image_{}.png'.format(epoch))
+        save_image(pic, './dc_img_edges/image_{}.png'.format(epoch))
 
-torch.save(model.state_dict(), './conv_normnal.pth')
+torch.save(model.state_dict(), './conv_edges.pth')
