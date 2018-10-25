@@ -118,7 +118,8 @@ right = np.array([V[0:3, 0]])
 right_rotation = gm.rotate(right_rotation_speed, right.transpose())
 light_rotation = gm.rotate(up_rotation_speed, right.transpose())
 
-bin_path = "/usr/bin/embree3/pathtracer"
+# bin_path = "/usr/bin/embree3/pathtracer"
+bin_path = "/home/agrippa/git/embree/build/pathtracer"
 samples = {}
 camera_sampler = CameraSampler(eye, at, up, num_up_samples,\
                                num_right_samples, up_rotation_speed,\
@@ -143,20 +144,20 @@ for eye, at, up in camera_sampler:
     light = np.array([light_rotation[0:3, 0:3].dot(light[0, :])])
   i = i + 1
 
-num_camera_samples = camera_sampler.total_samples
-start_rendering = time.time()
-pool = Pool(processes = 4)
-pool.map(call_embree, [(i, j, samples, \
-                       "crown/crown.xml", "out/out-%04d-%04d.ppm" % (i, j), \
-                       isa, num_threads, verbose) \
-                       for i in range(num_camera_samples) \
-                       for j in range(num_light_samples)])
+# num_camera_samples = camera_sampler.total_samples
+# start_rendering = time.time()
+# pool = Pool(processes = 4)
+# pool.map(call_embree, [(i, j, samples, \
+                       # "crown/crown.xml", "out/out-%04d-%04d.ppm" % (i, j), \
+                       # isa, num_threads, verbose) \
+                       # for i in range(num_camera_samples) \
+                       # for j in range(num_light_samples)])
 
-stop_rendering = time.time()
-total_render_time =  stop_rendering - start_rendering
-num_images = num_light_samples * num_camera_samples
-print("total time = %f, num_images = %d, time per image = %f" % \
-      (total_render_time, num_images, total_render_time / num_images))
+# stop_rendering = time.time()
+# total_render_time =  stop_rendering - start_rendering
+# num_images = num_light_samples * num_camera_samples
+# print("total time = %f, num_images = %d, time per image = %f" % \
+      # (total_render_time, num_images, total_render_time / num_images))
 
 max_path_length = 1 # --max-path-length 
 samples_per_pixel = 1 # --spp
@@ -167,24 +168,68 @@ up = np.array([[-0.000525674, 0.999936, 0.0113274]], dtype = np.float) # -vu
 camera_sampler = CameraSampler(eye, at, up,  num_up_samples,\
                                num_right_samples, up_rotation_speed,\
                                right_rotation_speed)
-i = 0
-for eye, at, up, in camera_sampler:
-  print("normal# %d" % (i))
-  print("eye = %s" % str(eye))
-  subprocess.call([bin_path,
-                       "-i", "crown/crown.xml",
-                       "-o", "out/normal_%04d.ppm" % (i),
-                       "--size", str(size[0, 0]), str(size[0, 1]),
-                       "--vp", str(eye[0, 0]), str(eye[0, 1]), str(eye[0, 2]),
-                       "--vi", str(at[0, 0]), str(at[0, 1]), str(at[0, 2]),
-                       "--vu", str(up[0, 0]), str(up[0, 1]), str(up[0, 2]),
-                       "--fov", str(fov),
-                       "--threads", str(num_threads),
-                       "--isa", isa,
-                       "--spp", str(samples_per_pixel),
-                      "--shader", "Ng",
-                       "--verbose", str(verbose)])
-  i = i + 1
+# i = 0
+# for eye, at, up, in camera_sampler:
+  # print("normal# %d" % (i))
+  # print("eye = %s" % str(eye))
+  # subprocess.call([bin_path,
+                       # "-i", "crown/crown.xml",
+                       # "-o", "out/normal_%04d.ppm" % (i),
+                       # "--size", str(size[0, 0]), str(size[0, 1]),
+                       # "--vp", str(eye[0, 0]), str(eye[0, 1]), str(eye[0, 2]),
+                       # "--vi", str(at[0, 0]), str(at[0, 1]), str(at[0, 2]),
+                       # "--vu", str(up[0, 0]), str(up[0, 1]), str(up[0, 2]),
+                       # "--fov", str(fov),
+                       # "--threads", str(num_threads),
+                       # "--isa", isa,
+                       # "--spp", str(samples_per_pixel),
+                      # "--shader", "Ng",
+                       # "--verbose", str(verbose)])
+  # i = i + 1
+
+# camera_sampler = CameraSampler(eye, at, up,  num_up_samples,\
+                               # num_right_samples, up_rotation_speed,\
+                               # right_rotation_speed)
+# i = 0
+# for eye, at, up, in camera_sampler:
+  # print("depth# %d" % (i))
+  # print("eye = %s" % str(eye))
+  # subprocess.call([bin_path,
+                       # "-i", "crown/crown.xml",
+                       # "-o", "out/depth_%04d.ppm" % (i),
+                       # "--size", str(size[0, 0]), str(size[0, 1]),
+                       # "--vp", str(eye[0, 0]), str(eye[0, 1]), str(eye[0, 2]),
+                       # "--vi", str(at[0, 0]), str(at[0, 1]), str(at[0, 2]),
+                       # "--vu", str(up[0, 0]), str(up[0, 1]), str(up[0, 2]),
+                       # "--fov", str(fov),
+                       # "--threads", str(num_threads),
+                       # "--isa", isa,
+                       # "--spp", str(samples_per_pixel),
+                      # "--shader", "depth",
+                       # "--verbose", str(verbose)])
+  # i = i + 1
+
+# camera_sampler = CameraSampler(eye, at, up,  num_up_samples,\
+                               # num_right_samples, up_rotation_speed,\
+                               # right_rotation_speed)
+# i = 0
+# for eye, at, up, in camera_sampler:
+  # print("curvature# %d" % (i))
+  # print("eye = %s" % str(eye))
+  # subprocess.call([bin_path,
+                       # "-i", "crown/crown.xml",
+                       # "-o", "out/curvature_%04d.ppm" % (i),
+                       # "--size", str(size[0, 0]), str(size[0, 1]),
+                       # "--vp", str(eye[0, 0]), str(eye[0, 1]), str(eye[0, 2]),
+                       # "--vi", str(at[0, 0]), str(at[0, 1]), str(at[0, 2]),
+                       # "--vu", str(up[0, 0]), str(up[0, 1]), str(up[0, 2]),
+                       # "--fov", str(fov),
+                       # "--threads", str(num_threads),
+                       # "--isa", isa,
+                       # "--spp", str(samples_per_pixel),
+                      # "--shader", "curvature",
+                       # "--verbose", str(verbose)])
+  # i = i + 1
 
 json.dump(samples, codecs.open("config.cfg", 'w', encoding='utf-8'),\
     separators=(',', ':'), sort_keys=True, indent=4)

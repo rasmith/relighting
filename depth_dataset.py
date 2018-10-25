@@ -4,13 +4,15 @@ import torch
 import torch.utils.data as data
 from PIL import Image
 import graphics_math
+import re
 
-class NormalDataset(data.Dataset):
-    def __init__(self, input_dir, cfg_file, image_dir, transform = None,\
+class DepthDataset(data.Dataset):
+    def __init__(self, input_dir, cfg_file, image_dir, depth_dir, transform = None,\
                  target_transform = None):
         self.cfg_file = cfg_file
         self.input_dir = input_dir 
         self.image_dir = image_dir
+        self.depth_dir = depth_dir 
         self.transform = transform
         self.target_transform = target_transform 
         self.cfg = cfg.read_cfg(input_dir, cfg_file)
@@ -29,7 +31,9 @@ class NormalDataset(data.Dataset):
     def __getitem__(self, idx):
         entry = self.flat_cfg[idx]
         image_path = "%s/%s" % (self.image_dir, entry['rendering'])
-        target_path = "%s/%s" % (self.image_dir, entry['normals'])
+        matches  = re.search('out-(\d+)-(\d+).png', image_path)
+        depth_file_name = "depth-%s-%s.png" % (matches[1], matches[2])
+        target_path = "%s/%s" % (self.depth_dir, depth_file_name)
         img = Image.open(image_path).convert('RGB')
         target = Image.open(target_path).convert('RGB')
         if self.transform is not None:
@@ -38,15 +42,5 @@ class NormalDataset(data.Dataset):
           target = self.target_transform(target)
         return img, target
 
-    def get_view_matrix(self, idx):
-      eye = np.array([self.flat_cfg[idx]['eye']])
-      up = np.array([self.flat_cfg[idx]['up']])
-      at = np.array([self.flat_cfg[idx]['at']])
-      view_matrix = graphics_math.lookat(eye.transpose(), at.transpose(),\
-                                         up.transpose())
-      return view_matrix
 
-    def get_target_name(self, idx):
-      entry = self.flat_cfg[idx]
-      return entry['normals']
 
