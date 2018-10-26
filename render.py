@@ -231,7 +231,29 @@ camera_sampler = CameraSampler(eye, at, up,  num_up_samples,\
                        # "--verbose", str(verbose)])
   # i = i + 1
 
-json.dump(samples, codecs.open("config.cfg", 'w', encoding='utf-8'),\
-    separators=(',', ':'), sort_keys=True, indent=4)
+camera_sampler = CameraSampler(eye, at, up,  num_up_samples,\
+                               num_right_samples, up_rotation_speed,\
+                               right_rotation_speed)
+i = 0
+for eye, at, up, in camera_sampler:
+  print("diffuse_albedo# %d" % (i))
+  print("eye = %s" % str(eye))
+  subprocess.call([bin_path,
+                       "-i", "crown/crown.xml",
+                       "-o", "diffuse_albedo/diffuse_albedo-%04d-0000.ppm" % (i),
+                       "--size", str(size[0, 0]), str(size[0, 1]),
+                       "--vp", str(eye[0, 0]), str(eye[0, 1]), str(eye[0, 2]),
+                       "--vi", str(at[0, 0]), str(at[0, 1]), str(at[0, 2]),
+                       "--vu", str(up[0, 0]), str(up[0, 1]), str(up[0, 2]),
+                       "--fov", str(fov),
+                       "--threads", str(num_threads),
+                       "--isa", isa,
+                       "--spp", str(samples_per_pixel),
+                      "--shader", "diffuse_albedo",
+                       "--verbose", str(verbose)])
+  i = i + 1
+
+# json.dump(samples, codecs.open("config.cfg", 'w', encoding='utf-8'),\
+    # separators=(',', ':'), sort_keys=True, indent=4)
 
 
