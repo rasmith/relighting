@@ -192,7 +192,7 @@ camera_sampler = CameraSampler(eye, at, up,  num_up_samples,\
                                # right_rotation_speed)
 # i = 0
 # for eye, at, up, in camera_sampler:
-  # print("depth# %d" % (i))
+  # print("epth# %d" % (i))
   # print("eye = %s" % str(eye))
   # subprocess.call([bin_path,
                        # "-i", "crown/crown.xml",
@@ -231,16 +231,39 @@ camera_sampler = CameraSampler(eye, at, up,  num_up_samples,\
                        # "--verbose", str(verbose)])
   # i = i + 1
 
+# camera_sampler = CameraSampler(eye, at, up,  num_up_samples,\
+                               # num_right_samples, up_rotation_speed,\
+                               # right_rotation_speed)
+# i = 0
+# for eye, at, up, in camera_sampler:
+  # print("diffuse_albedo# %d" % (i))
+  # print("eye = %s" % str(eye))
+  # subprocess.call([bin_path,
+                       # "-i", "crown/crown.xml",
+                       # "-o", "diffuse_albedo/diffuse_albedo-%04d-0000.ppm" % (i),
+                       # "--size", str(size[0, 0]), str(size[0, 1]),
+                       # "--vp", str(eye[0, 0]), str(eye[0, 1]), str(eye[0, 2]),
+                       # "--vi", str(at[0, 0]), str(at[0, 1]), str(at[0, 2]),
+                       # "--vu", str(up[0, 0]), str(up[0, 1]), str(up[0, 2]),
+                       # "--fov", str(fov),
+                       # "--threads", str(num_threads),
+                       # "--isa", isa,
+                       # "--spp", str(samples_per_pixel),
+                      # "--shader", "diffuse_albedo",
+                       # "--verbose", str(verbose)])
+  # i = i + 1
+
 camera_sampler = CameraSampler(eye, at, up,  num_up_samples,\
                                num_right_samples, up_rotation_speed,\
                                right_rotation_speed)
 i = 0
 for eye, at, up, in camera_sampler:
-  print("diffuse_albedo# %d" % (i))
+  print("ambient_occlusion# %d" % (i))
   print("eye = %s" % str(eye))
-  subprocess.call([bin_path,
+  # subprocess.call([bin_path,
+  process = subprocess.Popen([bin_path,
                        "-i", "crown/crown.xml",
-                       "-o", "diffuse_albedo/diffuse_albedo-%04d-0000.ppm" % (i),
+                       "-o", "ambient_occlusion/ambient_occlusion-%04d-0000.ppm" % (i),
                        "--size", str(size[0, 0]), str(size[0, 1]),
                        "--vp", str(eye[0, 0]), str(eye[0, 1]), str(eye[0, 2]),
                        "--vi", str(at[0, 0]), str(at[0, 1]), str(at[0, 2]),
@@ -249,8 +272,12 @@ for eye, at, up, in camera_sampler:
                        "--threads", str(num_threads),
                        "--isa", isa,
                        "--spp", str(samples_per_pixel),
-                      "--shader", "diffuse_albedo",
-                       "--verbose", str(verbose)])
+                      "--shader", "ao",
+                       "--verbose", str(verbose)],
+                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  out, err = process.communicate()
+  errcode = process.returncode
+  print("errocode=%s, out=%s, err=%s\n" % (str(errcode), out, err))
   i = i + 1
 
 # json.dump(samples, codecs.open("config.cfg", 'w', encoding='utf-8'),\

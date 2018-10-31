@@ -6,13 +6,13 @@ from PIL import Image
 import graphics_math
 import re
 
-class DiffuseAlbedoDataset(data.Dataset):
-    def __init__(self, input_dir, cfg_file, image_dir, diffuse_albedo_dir, transform = None,\
+class AmbientOcclusionDataset(data.Dataset):
+    def __init__(self, input_dir, cfg_file, image_dir, ambient_occlusion_dir, transform = None,\
                  target_transform = None):
         self.cfg_file = cfg_file
         self.input_dir = input_dir 
         self.image_dir = image_dir
-        self.diffuse_albedo_dir = diffuse_albedo_dir 
+        self.ambient_occlusion_dir = ambient_occlusion_dir 
         self.transform = transform
         self.target_transform = target_transform 
         self.cfg = cfg.read_cfg(input_dir, cfg_file)
@@ -32,8 +32,8 @@ class DiffuseAlbedoDataset(data.Dataset):
         entry = self.flat_cfg[idx]
         image_path = "%s/%s" % (self.image_dir, entry['rendering'])
         matches  = re.search('out-(\d+)-(\d+).png', image_path)
-        diffuse_albedo_file_name = "diffuse_albedo-%s-%s.png" % (matches[1], matches[2])
-        target_path = "%s/%s" % (self.diffuse_albedo_dir, diffuse_albedo_file_name)
+        ambient_occlusion_file_name = "ambient_occlusion-%s-%s.png" % (matches[1], matches[2])
+        target_path = "%s/%s" % (self.ambient_occlusion_dir, ambient_occlusion_file_name)
         img = Image.open(image_path).convert('RGB')
         target = Image.open(target_path).convert('RGB')
         if self.transform is not None:
