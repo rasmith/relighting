@@ -19,14 +19,12 @@ class Trainer(object):
   self.task_cfg = {}
 
   def init(self, which_device):
-    self.device = torch.device(which_device\
+    self.device = torch.device(which_device)\
         if "cuda" in which_device and torch.cuda.is_available() else "cpu")
     self.selected_device = torch.cuda.get_device()\
         if "cuda" in which_device and torch.cuda.is_available() else "cpu"
-    print("selected device = %a" % (selected_device))
+    print(f"selected device = %{selected_device}")
     self.task_cfg = self.cfg_loader.get_cfg(selected_device)
-    if not os.path.exists('./dc_img_ambient_occlusions'):
-        os.mkdir('./dc_img_ambient_occlusions')
 
   def train(self):
     batch_size = self.task_cfg['batch_size']
@@ -40,9 +38,10 @@ class Trainer(object):
     shuffle = self.task_cfg['shuffle']
     weights_file = self.task_cfg['weights_file']
 
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffl)
+    os.mkdir(dc_img) if not os.path.exists(dc_img)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
     for epoch in range(num_epochs):
-        for data in self.dataloader:
+        for data in dataloader:
             img, target = data
             img = Variable(img).cuda()\
                 if "cuda" in self.selected_device else Variable(img).cpu()

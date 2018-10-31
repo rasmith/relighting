@@ -7,22 +7,25 @@ from torchvision.transforms import Normalize
 from torchvision.transforms import ToTensor
 import torch
 
+task_name = 'dummy'
+
 cfg = {
     'batch_size' : 8,
     'cfg_file' : 'config.cfg',
     'criterion' : nn.MSELoss(),
-    'dc_img' : 'dc_img_dummys',
+    'dc_img' : f'dc_img/{task_name}',
+    'eval_dir':f'eval/{task_name}',
     'image_dir' : 'out',
     'input_dir' : '.',
     'learning_rate' : 1e-3,
     'num_epochs' : 200,
     'shuffle': True,
-    'target_dir': 'dummy',
+    'target_dir': f'target/{task_name}',
     'target_transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),
-    'task_name': 'dummy',
+    'task_name': f'{task_name}',
     'transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),
     'weight_decay': 1e-5,
-    'weights_file' : 'dummy.pth',
+    'weights_file' : f'weights/{task_name}.pth',
 }
 
 class CfgLoader(object):
