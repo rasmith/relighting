@@ -14,34 +14,39 @@ def to_img(x):
     return x
 
 class Trainer(object):
-  def __init__(self, cfg_loader):
-  self.cfg_loader = cfg_loader 
-  self.task_cfg = {}
+  def __init__(self, cfg_loader, dataset_wrapper = None):
+    self.cfg_loader = cfg_loader 
+    self.task_cfg = {}
+    self.dataset_wrapper = dataset_wrapper
 
   def init(self, which_device):
-    self.device = torch.device(which_device)\
+    self.device = torch.device(which_device\
         if "cuda" in which_device and torch.cuda.is_available() else "cpu")
     self.selected_device = torch.cuda.get_device()\
         if "cuda" in which_device and torch.cuda.is_available() else "cpu"
-    print(f"selected device = %{selected_device}")
-    self.task_cfg = self.cfg_loader.get_cfg(selected_device)
+    print(f"selected device = {self.selected_device}")
+    self.task_cfg = self.cfg_loader.get_cfg(self.selected_device)
 
   def train(self):
     batch_size = self.task_cfg['batch_size']
     criterion = self.task_cfg['criterion']
     dataset = self.task_cfg['dataset']
     dc_img = self.task_cfg['dc_img']
-    loss = self.task_cfg['loss']
+    criterion = self.task_cfg['criterion']
     model = self.task_cfg['model']
     num_epochs = self.task_cfg['num_epochs']
     optimizer = self.task_cfg['optimizer']
     shuffle = self.task_cfg['shuffle']
     weights_file = self.task_cfg['weights_file']
 
-    os.mkdir(dc_img) if not os.path.exists(dc_img)
+    if self.dataset_wrapper is not None:
+      dataset = self.dataset_wrapper(dataset)
+    if not os.path.exists(dc_img):
+      os.mkdir(dc_img)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+    print(f'num_epochs = {num_epochs} len(dataset) = {len(dataset)}')
     for epoch in range(num_epochs):
-        for data in dataloader:
+        for data in dataloader: 
             img, target = data
             img = Variable(img).cuda()\
                 if "cuda" in self.selected_device else Variable(img).cpu()
@@ -55,8 +60,8 @@ class Trainer(object):
             loss.backward()
             optimizer.step()
         # ===================log========================
-        print(f'epoch [{epoch+1:d}/{num_epochs:d}], loss:{loss.data[0]:.4f}')
+        print(f'epoch [{epoch+1:d}/{num_epochs:d}], loss:{loss.item():.4f}')
         if epoch % 10 == 0:
             pic = to_img(output.cpu().data)
-            save_image(pic, f'{dc_img}/image_{}.png')
+            save_image(pic, f'{dc_img}/image_{epoch:d}.png')
     torch.save(model.state_dict(), f'./{weights_file}')

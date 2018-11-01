@@ -1,5 +1,5 @@
 from datasets.file_system_dataset import FileSystemDataset
-from models.convolutional_model import ConvolutionalModel
+from models.small_convolutional_model import SmallConvolutionalModel
 from torch import nn
 from torch.optim import Adam
 from torchvision.transforms import Compose
@@ -10,7 +10,7 @@ import torch
 task_name = 'dummy'
 
 cfg = {
-    'batch_size' : 8,
+    'batch_size' : 2,
     'cfg_file' : 'config.cfg',
     'criterion' : nn.MSELoss(),
     'dc_img' : f'dc_img/{task_name}',
@@ -18,7 +18,7 @@ cfg = {
     'image_dir' : 'out',
     'input_dir' : '.',
     'learning_rate' : 1e-3,
-    'num_epochs' : 200,
+    'num_epochs' : 20,
     'shuffle': True,
     'target_dir': f'target/{task_name}',
     'target_transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),
@@ -35,7 +35,7 @@ class CfgLoader(object):
 
   def get_cfg(self, device):
     self.cfg['model'] = ConvolutionalModel().cuda(device)\
-        if "cuda" in device else ConvolutionalModel.cpu()
+        if "cuda" in device else SmallConvolutionalModel().cpu()
     self.cfg['dataset'] = FileSystemDataset(cfg['input_dir'], cfg['cfg_file'],
                                             cfg['image_dir'], cfg['target_dir'],
                                             cfg['task_name'], cfg['transform'],
