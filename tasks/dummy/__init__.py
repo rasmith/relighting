@@ -28,6 +28,7 @@ cfg = {
     'weights_file' : f'weights/{task_name}.pth',
 }
 
+
 class CfgLoader(object):
   def __init__(self):
     self.cfg = cfg
