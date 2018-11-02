@@ -23,12 +23,15 @@ class Trainer(object):
   def init(self, which_device = None):
     if which_device is None:
       which_device = "cpu"
+    self.use_cuda = True\
+        if "cuda" in which_device and torch.cuda.is_available() else False
     self.device = torch.device(which_device\
         if "cuda" in which_device and torch.cuda.is_available() else "cpu")
-    self.selected_device = torch.cuda.get_device()\
-        if "cuda" in which_device and torch.cuda.is_available() else "cpu"
-    print(f"selected device = {self.selected_device}")
-    self.task_cfg = self.cfg_loader.get_cfg(self.selected_device)
+    if not self.use_cuda:
+      which_device = "cpu"
+    print(f"selected device = {which_device}")
+    self.selected_device = which_device
+    self.task_cfg = self.cfg_loader.get_cfg(which_device)
     self.initialized = True
 
   def check(self):

@@ -6,7 +6,7 @@ import pkgutil
 import tasks
 
 package = tasks
-device = 'cpu'
+device = 'cuda'
 
 for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
     print('--------------------------------------------')
