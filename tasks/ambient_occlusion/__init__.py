@@ -9,6 +9,8 @@ import torch
 
 task_name = 'ambient_occlusion'
 
+enabled = False
+
 cfg = {
     'batch_size' : 8,
     'cfg_file' : 'config.cfg',

@@ -9,6 +9,8 @@ import torch
 
 task_name = 'dummy'
 
+enabled = True
+
 cfg = {
     'batch_size' : 2,
     'cfg_file' : 'config.cfg',
