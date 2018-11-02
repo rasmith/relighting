@@ -2,6 +2,7 @@ from datasets.file_system_dataset import FileSystemDataset
 from models.small_convolutional_model import SmallConvolutionalModel
 from torch import nn
 from torch.optim import Adam
+from torch.utils.data import Subset
 from torchvision.transforms import Compose
 from torchvision.transforms import Normalize
 from torchvision.transforms import ToTensor
@@ -9,13 +10,12 @@ import torch
 
 task_name = 'dummy'
 
-enabled = True
-
 cfg = {
     'batch_size' : 2,
     'cfg_file' : 'config.cfg',
     'criterion' : nn.MSELoss(),
     'dc_img' : f'dc_img/{task_name}',
+    'enabled' : True,
     'eval_dir':f'eval/{task_name}',
     'image_dir' : 'out',
     'input_dir' : '.',
@@ -28,6 +28,7 @@ cfg = {
     'transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),
     'weight_decay': 1e-5,
     'weights_file' : f'weights/{task_name}.pth',
+    'wrapper' : (lambda x : Subset(x, range(4))),
 }
 
 

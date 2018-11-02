@@ -9,13 +9,12 @@ import torch
 
 task_name = 'dummy'
 
-enabled = False
-
 cfg = {
     'batch_size' : 8,
     'cfg_file' : 'config.cfg',
     'criterion' : nn.MSELoss(),
     'dc_img' : f'dc_img/{task_name}',
+    'enabled' : False,
     'eval_dir':f'eval/{task_name}',
     'image_dir' : 'out',
     'input_dir' : '.',
@@ -28,6 +27,7 @@ cfg = {
     'transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),
     'weight_decay': 1e-5,
     'weights_file' : f'weights/{task_name}.pth',
+    'wrapper' : None,
 }
 
 class CfgLoader(object):
