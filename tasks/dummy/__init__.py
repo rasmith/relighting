@@ -37,7 +37,7 @@ class CfgLoader(object):
     self.cfg = cfg
 
   def get_cfg(self, device):
-    self.cfg['model'] = ConvolutionalModel().cuda(device)\
+    self.cfg['model'] = SmallConvolutionalModel().cuda(device)\
         if "cuda" in device else SmallConvolutionalModel().cpu()
     self.cfg['dataset'] = FileSystemDataset(cfg['input_dir'], cfg['cfg_file'],
                                             cfg['image_dir'], cfg['target_dir'],

@@ -23,12 +23,19 @@ class Evaluator(object):
     self.dataset_wrapper = dataset_wrapper
 
   def init(self, which_device):
+    if which_device is None:
+      which_device = "cpu"
+    self.use_cuda = True\
+        if "cuda" in which_device and torch.cuda.is_available() else False
     self.device = torch.device(which_device\
         if "cuda" in which_device and torch.cuda.is_available() else "cpu")
-    self.selected_device = torch.cuda.get_device()\
-        if "cuda" in which_device and torch.cuda.is_available() else "cpu"
-    print(f"selected device = {self.selected_device}")
-    self.task_cfg = self.cfg_loader.get_cfg(self.selected_device)
+    if not self.use_cuda:
+      which_device = "cpu"
+    print(f"selected device = {which_device}")
+    self.selected_device = which_device
+    self.task_cfg = self.cfg_loader.get_cfg(which_device)
+    self.initialized = True
+
 
   def evaluate(self):
     criterion = self.task_cfg['criterion']
@@ -47,8 +54,8 @@ class Evaluator(object):
     i = 0
     for data in dataloader:
       img, target = data
-      img = Variable(img).cpu()
-      target = Variable(target).cpu()
+      img = Variable(img).cuda() if self.use_cuda else  Variable(img).cpu()
+      target = Variable(target).cuda() if self.use_cuda else Variable(img).cpu()
       output = model(img)
       pic = to_img(output.cpu().data)
       print (f"save_image ./{eval_dir}/image_%04d.png" % (i))
