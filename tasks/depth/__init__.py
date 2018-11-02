@@ -27,7 +27,7 @@ cfg = {
     'transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),
     'weight_decay': 1e-5,
     'weights_file' : f'weights/{task_name}.pth',
-    'wrapper' : None,
+    'data_wrapper' : None
 }
 
 class CfgLoader(object):
