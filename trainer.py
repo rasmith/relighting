@@ -18,16 +18,30 @@ class Trainer(object):
     self.cfg_loader = cfg_loader 
     self.task_cfg = {}
     self.dataset_wrapper = dataset_wrapper
+    self.initialized = False
 
-  def init(self, which_device):
+  def init(self, which_device = None):
+    if which_device is None:
+      which_device = "cpu"
     self.device = torch.device(which_device\
         if "cuda" in which_device and torch.cuda.is_available() else "cpu")
     self.selected_device = torch.cuda.get_device()\
         if "cuda" in which_device and torch.cuda.is_available() else "cpu"
     print(f"selected device = {self.selected_device}")
     self.task_cfg = self.cfg_loader.get_cfg(self.selected_device)
+    self.initialized = True
+
+  def check(self):
+    if not os.path.isdir(self.task_cfg['target_dir']):
+      print(f'target_dir "{target_dir}" does not exist.\n')
+      return False
+    return True
 
   def train(self):
+    if not self.initialized:
+      self.init()
+    if not self.check():
+      return
     batch_size = self.task_cfg['batch_size']
     criterion = self.task_cfg['criterion']
     dataset = self.task_cfg['dataset']
