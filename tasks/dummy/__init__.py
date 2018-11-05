@@ -1,5 +1,5 @@
 from datasets.file_system_dataset import FileSystemDataset
-from models.small_convolutional_model import SmallConvolutionalModel
+from models.convolutional_model import ConvolutionalModel
 from torch import nn
 from torch.optim import Adam
 from torch.utils.data import Subset
@@ -11,10 +11,10 @@ import torch
 task_name = 'dummy'
 
 cfg = {
-    'batch_size' : 2,
+    'batch_size' : 8,
     'cfg_file' : 'config.cfg',
     'criterion' : nn.MSELoss(),
-    'data_wrapper' : (lambda x : Subset(x, range(4))),
+    'data_wrapper' : (lambda x : Subset(x, range(32))),
     'dc_img' : f'dc_img/{task_name}',
     'enabled' : True,
     'eval_dir':f'eval/{task_name}',
@@ -31,14 +31,13 @@ cfg = {
     'weights_file' : f'weights/{task_name}.pth'
 }
 
-
 class CfgLoader(object):
   def __init__(self):
     self.cfg = cfg
 
   def get_cfg(self, device):
-    self.cfg['model'] = SmallConvolutionalModel().cuda(device)\
-        if "cuda" in device else SmallConvolutionalModel().cpu()
+    self.cfg['model'] = ConvolutionalModel().cuda(device)\
+        if "cuda" in device else nvolutionalModel().cpu()
     self.cfg['dataset'] = FileSystemDataset(cfg['input_dir'], cfg['cfg_file'],
                                             cfg['image_dir'], cfg['target_dir'],
                                             cfg['task_name'], cfg['transform'],
@@ -47,4 +46,5 @@ class CfgLoader(object):
                                  lr=cfg['learning_rate'],
                                  weight_decay=cfg['weight_decay'])
     return self.cfg
+
 

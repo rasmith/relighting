@@ -7,20 +7,20 @@ from torchvision.transforms import Normalize
 from torchvision.transforms import ToTensor
 import torch
 
-task_name = 'dummy'
+task_name = 'diffuse_albedo'
 
 cfg = {
     'batch_size' : 8,
     'cfg_file' : 'config.cfg',
     'criterion' : nn.MSELoss(),
-    'data_wrapper' : None,
+    'data_wrapper' : (lambda x : Subset(x, range(32))),
     'dc_img' : f'dc_img/{task_name}',
-    'enabled' : False,
+    'enabled' : True,
     'eval_dir':f'eval/{task_name}',
     'image_dir' : 'out',
     'input_dir' : '.',
     'learning_rate' : 1e-3,
-    'num_epochs' : 200,
+    'num_epochs' : 20,
     'shuffle': True,
     'target_dir': f'target/{task_name}',
     'target_transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),

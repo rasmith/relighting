@@ -11,12 +11,12 @@ import torch
 task_name = 'dummy2'
 
 cfg = {
-    'batch_size' : 2,
+    'batch_size' : 8,
     'cfg_file' : 'config.cfg',
     'criterion' : nn.MSELoss(),
-    'data_wrapper' : (lambda x : Subset(x, range(4))),
+    'data_wrapper' : (lambda x : Subset(x, range(32))),
     'dc_img' : f'dc_img/{task_name}',
-    'enabled' : True,
+    'enabled' : False,
     'eval_dir':f'eval/{task_name}',
     'image_dir' : 'out',
     'input_dir' : '.',
