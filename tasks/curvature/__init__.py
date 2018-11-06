@@ -21,7 +21,7 @@ cfg = {
     'image_dir' : 'out',
     'input_dir' : '.',
     'learning_rate' : 1e-3,
-    'num_epochs' : 20,
+    'num_epochs' : 200,
     'shuffle': True,
     'target_dir': f'targets/{task_name}',
     'target_transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),
