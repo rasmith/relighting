@@ -2,6 +2,7 @@ from datasets.file_system_dataset import FileSystemDataset
 from models.convolutional_model import ConvolutionalModel
 from torch import nn
 from torch.optim import Adam
+from torch.utils.data import Subset
 from torchvision.transforms import Compose
 from torchvision.transforms import Normalize
 from torchvision.transforms import ToTensor
@@ -13,7 +14,7 @@ cfg = {
     'batch_size' : 8,
     'cfg_file' : 'config.cfg',
     'criterion' : nn.MSELoss(),
-    'data_wrapper' : (lambda x : Subset(x, range(32))),
+    'data_wrapper' : None,
     'dc_img' : f'dc_img/{task_name}',
     'enabled' : True,
     'eval_dir':f'eval/{task_name}',
@@ -22,7 +23,7 @@ cfg = {
     'learning_rate' : 1e-3,
     'num_epochs' : 20,
     'shuffle': True,
-    'target_dir': f'target/{task_name}',
+    'target_dir': f'targets/{task_name}',
     'target_transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),
     'task_name': f'{task_name}',
     'transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),

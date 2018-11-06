@@ -23,7 +23,7 @@ cfg = {
     'learning_rate' : 1e-3,
     'num_epochs' : 20,
     'shuffle': True,
-    'target_dir': f'target/{task_name}',
+    'target_dir': f'targets/{task_name}',
     'target_transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),
     'task_name': f'{task_name}',
     'transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),
