@@ -5,10 +5,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class ResnetEncoderConvolutionalDecoder(nn.Module):
-    def __init__(self, width, height, channels):
-        self.width = width
-        self.height = height
-        self.channels = channels
+    def __init__(self):
+        super(ResnetEncoderConvolutionalDecoder, self).__init__()
+        self.width = 256
+        self.height = 256
+        self.channels = 3
         # encoder
         self.resnet = r.resnet18()
         self.fc0 = torch.nn.Linear(512 * 16 *16, 1024*4*4)
@@ -32,7 +33,7 @@ class ResnetEncoderConvolutionalDecoder(nn.Module):
     def encode(self, X):
         Y = self.resnet(X)
         Y=Y.view(-1, 512 * 16 *16)
-        Y=F.relu(fc0(Y))
+        Y=F.relu(self.fc0(Y))
         Y=Y.view(-1, 1024, 4, 4)
         return Y
 
