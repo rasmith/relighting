@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 from torchvision.utils import save_image
 import os
 import torch
+import time
 
 
 def to_img(x):
@@ -14,11 +15,12 @@ def to_img(x):
     return x
 
 class Trainer(object):
-  def __init__(self, cfg_loader, dataset_wrapper = None):
+  def __init__(self, cfg_loader, dataset_wrapper = None, writer = None):
     self.cfg_loader = cfg_loader 
     self.task_cfg = {}
     self.dataset_wrapper = dataset_wrapper
     self.initialized = False
+    self.writer = writer 
 
   def init(self, which_device = None):
     if which_device is None:
@@ -78,7 +80,11 @@ class Trainer(object):
             optimizer.step()
         # ===================log========================
         print(f'epoch [{epoch+1:d}/{num_epochs:d}], loss:{loss.item():.4f}')
+        self.writer.add_scalar(f"{self.task_cfg['task_name']}-loss", loss.item(), epoch, time.time())
+
         if epoch % 10 == 0:
             pic = to_img(output.cpu().data)
             save_image(pic, f'{dc_img}/image_{epoch:d}.png')
+            self.writer.add_image(f"{self.task_cfg['task_name']}-dc", pic, epoch, time.time())
     torch.save(model.state_dict(), f'./{weights_file}')
+    print('Saving...')

@@ -17,10 +17,11 @@ def to_img(x):
     return x
   
 class Evaluator(object):
-  def __init__(self, cfg_loader, dataset_wrapper = None):
+  def __init__(self, cfg_loader, dataset_wrapper = None, writer = None):
     self.cfg_loader = cfg_loader 
     self.task_cfg = {}
     self.dataset_wrapper = dataset_wrapper
+    self.writer = writer
 
   def init(self, which_device):
     if which_device is None:
@@ -52,6 +53,7 @@ class Evaluator(object):
     if not os.path.exists(eval_dir):
       os.mkdir(eval_dir)
     i = 0
+    grid_images = None
     for data in dataloader:
       img, target = data
       img = Variable(img).cuda() if self.use_cuda else  Variable(img).cpu()
@@ -60,4 +62,7 @@ class Evaluator(object):
       pic = to_img(output.cpu().data)
       print (f"save_image ./{eval_dir}/image_%04d.png" % (i))
       save_image(pic, f'./{eval_dir}/image_%04d.png' % (i))
+      if i < 10:
+          out = to_img(torch.cat((output, target)).cpu().data)
+          self.writer.add_image(f'{self.task_cfg["task_name"]}-{i}-eval', out)
       i = i + 1

@@ -16,7 +16,7 @@ cfg = {
     'criterion' : nn.MSELoss(),
     'data_wrapper' : None,
     'dc_img' : f'dc_img/{task_name}',
-    'enabled' : True,
+    'enabled' : False,
     'eval_dir':f'eval/{task_name}',
     'image_dir' : 'out',
     'input_dir' : '.',
