@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import gc
 from torch import nn
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
@@ -55,6 +56,7 @@ class Trainer(object):
     model = self.task_cfg['model']
     num_epochs = self.task_cfg['num_epochs']
     optimizer = self.task_cfg['optimizer']
+    sampler = self.task_cfg['train_sampler']
     shuffle = self.task_cfg['shuffle']
     weights_file = self.task_cfg['weights_file']
 
@@ -62,12 +64,14 @@ class Trainer(object):
       dataset = self.dataset_wrapper(dataset)
     if not os.path.exists(dc_img):
       os.mkdir(dc_img)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
+      sampler=sampler)
+    print(f'pytorch version = {torch.__version__}')
     print(f'num_epochs = {num_epochs} len(dataset) = {len(dataset)}')
     for epoch in range(num_epochs):
         for data in dataloader: 
             img, target = data
-            img = Variable(img).cuda()\
+            img = Variable(img ).cuda()\
                 if "cuda" in self.selected_device else Variable(img).cpu()
             target = Variable(target).cuda()\
                 if "cuda" in self.selected_device else Variable(target).cpu()
@@ -76,11 +80,14 @@ class Trainer(object):
             loss = criterion(output, target)
             # ===================backward====================
             optimizer.zero_grad()
+            # print(f'memory_allocated={torch.cuda.memory_allocated()/(1024.0*1024.0)}')
+            # print(f'memory_cached={torch.cuda.memory_cached()/(1024.0*1024.0)}')
             loss.backward()
             optimizer.step()
         # ===================log========================
         print(f'epoch [{epoch+1:d}/{num_epochs:d}], loss:{loss.item():.4f}')
-        self.writer.add_scalar(f"{self.task_cfg['task_name']}-loss", loss.item(), epoch, time.time())
+        self.writer.add_scalar(f"{self.task_cfg['task_name']}-loss", \
+                                  loss.item(), epoch, time.time())
 
         if epoch % 10 == 0:
             pic = to_img(output.cpu().data)

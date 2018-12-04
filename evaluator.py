@@ -43,10 +43,12 @@ class Evaluator(object):
     dataset = self.task_cfg['dataset']
     eval_dir = self.task_cfg['eval_dir']
     model = self.task_cfg['model']
+    sampler = self.task_cfg['validation_sampler']
     weights_file = self.task_cfg['weights_file']
+    shuffle = self.task_cfg['shuffle']
     if self.dataset_wrapper is not None:
       dataset = self.dataset_wrapper(dataset)
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=shuffle, sampler = sampler)
 
     model.load_state_dict(torch.load(f'./{weights_file}'))
     model.eval()

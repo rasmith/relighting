@@ -6,6 +6,7 @@ import importlib
 import pkgutil
 import tasks
 import time
+import torch
 
 package = tasks
 device = 'cuda'
@@ -26,7 +27,7 @@ for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
         t.train()
         print('Evaluating..')
         e = Evaluator(cfg_loader, data_wrapper, writer)
-
+        
         e.init(device)
         e.evaluate()
         writer.close()
