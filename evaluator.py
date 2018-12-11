@@ -38,11 +38,12 @@ class Evaluator(object):
     self.initialized = True
 
 
-  def evaluate(self):
+  def evaluate(self, sampler):
     criterion = self.task_cfg['criterion']
     dataset = self.task_cfg['dataset']
     eval_dir = self.task_cfg['eval_dir']
     model = self.task_cfg['model']
+    if 
     sampler = self.task_cfg['validation_sampler']
     weights_file = self.task_cfg['weights_file']
     shuffle = self.task_cfg['shuffle']
