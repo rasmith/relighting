@@ -1,5 +1,5 @@
 from datasets.file_system_dataset import FileSystemDataset
-from models.small_convolutional_model import SmallConvolutionalModel
+from models.resnet_encoder_convolutional_decoder import ResnetEncoderConvolutionalDecoder
 from torch import nn
 from torch.optim import Adam
 from torch.utils.data import Subset
@@ -16,14 +16,16 @@ cfg = {
     'batch_size' : 2,
     'cfg_file' : 'config.cfg',
     'criterion' : nn.MSELoss(),
-    'data_wrapper' : None,
+    # 'data_wrapper' : None,
+    'data_wrapper' : (lambda x : Subset(x, range(8))),
     'dc_img' : f'dc_img/{task_name}',
     'enabled' : True,
     'eval_dir':f'eval/{task_name}',
     'image_dir' : 'out',
     'input_dir' : '.',
     'learning_rate' : 1e-3,
-    'num_epochs' : 200,
+    # 'num_epochs' : 200,
+    'num_epochs' : 2,
     'seed': (lambda : 42),
     'shuffle': True,
     'target_dir': f'targets/{task_name}',
@@ -41,8 +43,8 @@ class CfgLoader(object):
     self.cfg = cfg
 
   def get_cfg(self, device):
-    self.cfg['model'] = SmallConvolutionalModel().cuda(device)\
-        if "cuda" in device else SmallConvolutionalModel().cpu()
+    self.cfg['model'] = ResnetEncoderConvolutionalDecoder().cuda(device)\
+        if "cuda" in device else ResnetEncoderConvolutionalDecoder().cpu()
     self.cfg['dataset'] = FileSystemDataset(cfg['input_dir'], cfg['cfg_file'],
                                             cfg['image_dir'], cfg['target_dir'],
                                             cfg['task_name'], cfg['transform'],

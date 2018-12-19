@@ -37,14 +37,40 @@ class Evaluator(object):
     self.task_cfg = self.cfg_loader.get_cfg(which_device)
     self.initialized = True
 
+  def encode(self, dest_dir):
+    dataset = self.task_cfg['dataset']
+    model = self.task_cfg['model']
+    weights_file = self.task_cfg['weights_file']
+    print(f'weights_file={weights_file}')
+    if self.dataset_wrapper is not None:
+      dataset = self.dataset_wrapper(dataset)
+    dataloader = DataLoader(dataset, batch_size=1)
+
+    model.load_state_dict(torch.load(f'./{weights_file}'))
+    model.eval()
+    if not os.path.exists(dest_dir):
+      os.mkdir(dest_dir)
+    i = 0
+    for data in dataloader:
+      img, target = data
+      img = Variable(img).cuda() if self.use_cuda else  Variable(img).cpu()
+      target = Variable(target).cuda() if self.use_cuda else Variable(img).cpu()
+      context_vector = model.encode(img)
+      context_vector_file = f'./{dest_dir}/{i:08d}.pth'
+      print (f'save {context_vector_file}')
+      torch.save(torch.squeeze(context_vector), f'{context_vector_file}')
+      i = i + 1
 
   def evaluate(self, sampler):
-    criterion = self.task_cfg['criterion']
     dataset = self.task_cfg['dataset']
     eval_dir = self.task_cfg['eval_dir']
     model = self.task_cfg['model']
-    if 
-    sampler = self.task_cfg['validation_sampler']
+    if sampler == "validation":
+      sampler = self.task_cfg['validation_sampler']
+      eval_dir = f'{eval_dir}/validation'
+    else:
+      sampler = self.task_cfg['train_sampler']
+      eval_dir = f'{eval_dir}/training'
     weights_file = self.task_cfg['weights_file']
     shuffle = self.task_cfg['shuffle']
     if self.dataset_wrapper is not None:
@@ -60,10 +86,12 @@ class Evaluator(object):
     for data in dataloader:
       img, target = data
       img = Variable(img).cuda() if self.use_cuda else  Variable(img).cpu()
-      target = Variable(target).cuda() if self.use_cuda else Variable(img).cpu()
+      target = Variable(target).cuda() if self.use_cuda else Variable(target).cpu()
       output = model(img)
       pic = to_img(output.cpu().data)
       print (f"save_image ./{eval_dir}/image_%04d.png" % (i))
+      print (f"pic.shape = {pic.shape} output.shape = {output.shape} \
+          target.shape = {target.shape}")
       save_image(pic, f'./{eval_dir}/image_%04d.png' % (i))
       if i < 10:
           out = to_img(torch.cat((output, target)).cpu().data)

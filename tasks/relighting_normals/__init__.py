@@ -1,5 +1,5 @@
-from datasets.file_system_dataset import FileSystemDataset
-from models.small_convolutional_model import SmallConvolutionalModel
+from datasets.context_vector_dataset import ContextVectorDataset
+from models.convolutional_decoder import ConvolutionalDecoder 
 from torch import nn
 from torch.optim import Adam
 from torch.utils.data import Subset
@@ -16,20 +16,20 @@ cfg = {
     'batch_size' : 2,
     'cfg_file' : 'config.cfg',
     'criterion' : nn.MSELoss(),
-    'data_wrapper' : None,
+    'data_wrapper' : (lambda x : Subset(x, range(8))),
     'dc_img' : f'dc_img/{task_name}',
     'enabled' : True,
     'eval_dir':f'eval/{task_name}',
-    'image_dir' : 'out',
+    'image_dir' : f'sources/{task_name}',
     'input_dir' : '.',
     'learning_rate' : 1e-3,
-    'num_epochs' : 200,
+    'num_epochs' : 2,
     'seed': (lambda : 42),
     'shuffle': True,
-    'target_dir': f'targets/{task_name}',
+    'target_dir': f'out',
     'target_transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),
     'task_name': f'{task_name}',
-    'transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),
+    'transform' : None,
     'use_sampler': True, 
     'validation_split': .2,
     'weight_decay': 1e-5,
@@ -41,9 +41,9 @@ class CfgLoader(object):
     self.cfg = cfg
 
   def get_cfg(self, device):
-    self.cfg['model'] = SmallConvolutionalModel().cuda(device)\
-        if "cuda" in device else SmallConvolutionalModel().cpu()
-    self.cfg['dataset'] = FileSystemDataset(cfg['input_dir'], cfg['cfg_file'],
+    self.cfg['model'] = ConvolutionalDecoder().cuda(device)\
+        if "cuda" in device else ConvolutionalDecoder().cpu()
+    self.cfg['dataset'] = ContextVectorDataset(cfg['input_dir'], cfg['cfg_file'],
                                             cfg['image_dir'], cfg['target_dir'],
                                             cfg['task_name'], cfg['transform'],
                                             cfg['target_transform'])

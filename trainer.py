@@ -71,7 +71,7 @@ class Trainer(object):
     for epoch in range(num_epochs):
         for data in dataloader: 
             img, target = data
-            img = Variable(img ).cuda()\
+            img = Variable(img).cuda()\
                 if "cuda" in self.selected_device else Variable(img).cpu()
             target = Variable(target).cuda()\
                 if "cuda" in self.selected_device else Variable(target).cpu()

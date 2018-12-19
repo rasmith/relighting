@@ -19,7 +19,7 @@ class ContextVectorDataset(data.Dataset):
         self.cfg = cfg.read_cfg(input_dir, cfg_file)
         for j in self.cfg.keys():
           for k in self.cfg[j].keys():
-            self.cfg[j][k].update({'context':'context_%04d.pth' % (int(j)),\
+            self.cfg[j][k].update({'context_vector':'%08d.pth' % (int(j)),\
                                    'rendering':'out-%04d-%04d.png'\
                                     % (int(j), int(k)),\
                                     'i': j, 'j' : k})
@@ -31,17 +31,17 @@ class ContextVectorDataset(data.Dataset):
 
     def __getitem__(self, idx):
         entry = self.flat_cfg[idx]
-        source_path = "%s/%s" % (self.source_dir, entry['rendering'])
-        matches  = re.search('out-(\d+)-(\d+).png', source_path)
-        target_file_name = "%s-%s-%s.png" % (self.task_name, matches[1], matches[2])
-        target_path = "%s/%s" % (self.target_dir, target_file_name)
-        img = Image.open(source_path).convert('RGB')
+        source_path = "%s/%s" % (self.source_dir, entry['context_vector'])
+        target_path = "%s/%s" % (self.target_dir, entry['rendering'])
+        # print(f'source_path={source_path}')
+        # print(f'target_path={target_path}')
+        source = torch.load(source_path)
         target = Image.open(target_path).convert('RGB')
         if self.source_transform is not None:
-          img = self.source_transform(img)
+          source = self.source_transform(source)
         if self.target_transform is not None:
           target = self.target_transform(target)
-        return img, target
+        return source, target
 
 
 
