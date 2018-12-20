@@ -1,5 +1,4 @@
 *.pth
-*.ipynb
 .DS_Store
 *.swp
 config.cfg
