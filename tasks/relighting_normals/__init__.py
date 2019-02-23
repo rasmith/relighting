@@ -1,5 +1,4 @@
 from datasets.context_vector_dataset import ContextVectorDataset
-from models.convolutional_decoder import ConvolutionalDecoder 
 from torch import nn
 from torch.optim import Adam
 from torch.utils.data import Subset
@@ -7,23 +6,27 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from torchvision.transforms import Compose
 from torchvision.transforms import Normalize
 from torchvision.transforms import ToTensor
+import models as r
 import numpy as np
 import torch
 
 task_name = 'relighting_normals'
 
 cfg = {
-    'batch_size' : 2,
+    'batch_size' : 8,
     'cfg_file' : 'config.cfg',
     'criterion' : nn.MSELoss(),
-    'data_wrapper' : (lambda x : Subset(x, range(8))),
+    # 'data_wrapper' : (lambda x : Subset(x, range(32))),
+    'data_wrapper' : None,
     'dc_img' : f'dc_img/{task_name}',
-    'enabled' : True,
+    # 'enabled' : True,
+    'enabled' : False,
     'eval_dir':f'eval/{task_name}',
     'image_dir' : f'sources/{task_name}',
     'input_dir' : '.',
     'learning_rate' : 1e-3,
-    'num_epochs' : 2,
+    # 'num_epochs' : 2,
+    'num_epochs' : 200,
     'seed': (lambda : 42),
     'shuffle': True,
     'target_dir': f'out',
@@ -41,8 +44,9 @@ class CfgLoader(object):
     self.cfg = cfg
 
   def get_cfg(self, device):
-    self.cfg['model'] = ConvolutionalDecoder().cuda(device)\
-        if "cuda" in device else ConvolutionalDecoder().cpu()
+    self.cfg['activation'] = nn.Tanh()
+    self.cfg['model'] = r.Conv11Decoder128x128(self.cfg['activation']).cuda(device) \
+      if "cuda" in device else r.Conv11Decoder128x128(self.cfg['activation']).cpu()
     self.cfg['dataset'] = ContextVectorDataset(cfg['input_dir'], cfg['cfg_file'],
                                             cfg['image_dir'], cfg['target_dir'],
                                             cfg['task_name'], cfg['transform'],

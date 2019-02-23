@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+#example :  ./generate_context_vectors.py normals sources/relighting_normals cuda
+
 import tasks
 import sys
 import importlib

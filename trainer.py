@@ -12,7 +12,7 @@ import time
 def to_img(x):
     x = 0.5 * (x + 1)
     x = x.clamp(0, 1)
-    x = x.view(x.size(0), 3, 256, 256)
+    x = x.view(x.size(0), 3, 128, 128)
     return x
 
 class Trainer(object):
@@ -56,42 +56,58 @@ class Trainer(object):
     model = self.task_cfg['model']
     num_epochs = self.task_cfg['num_epochs']
     optimizer = self.task_cfg['optimizer']
-    sampler = self.task_cfg['train_sampler']
+    training_sampler = self.task_cfg['training_sampler']
+    validation_sampler = self.task_cfg['validation_sampler']
     shuffle = self.task_cfg['shuffle']
     weights_file = self.task_cfg['weights_file']
+    best_loss = 10000000.0
 
     if self.dataset_wrapper is not None:
       dataset = self.dataset_wrapper(dataset)
     if not os.path.exists(dc_img):
       os.mkdir(dc_img)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
-      sampler=sampler)
+    training_loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
+      sampler=training_sampler)
+    validation_loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
+      sampler=validation_sampler)
     print(f'pytorch version = {torch.__version__}')
     print(f'num_epochs = {num_epochs} len(dataset) = {len(dataset)}')
+    current_step = 0
     for epoch in range(num_epochs):
-        for data in dataloader: 
-            img, target = data
-            img = Variable(img).cuda()\
-                if "cuda" in self.selected_device else Variable(img).cpu()
-            target = Variable(target).cuda()\
-                if "cuda" in self.selected_device else Variable(target).cpu()
-            # ===================forward=====================
-            output = model(img)
-            loss = criterion(output, target)
-            # ===================backward====================
-            optimizer.zero_grad()
-            # print(f'memory_allocated={torch.cuda.memory_allocated()/(1024.0*1024.0)}')
-            # print(f'memory_cached={torch.cuda.memory_cached()/(1024.0*1024.0)}')
-            loss.backward()
-            optimizer.step()
-        # ===================log========================
-        print(f'epoch [{epoch+1:d}/{num_epochs:d}], loss:{loss.item():.4f}')
-        self.writer.add_scalar(f"{self.task_cfg['task_name']}-loss", \
-                                  loss.item(), epoch, time.time())
+        running_loss = 0.0
+        for phase in ['training', 'validation']:
+          dataloader = training_loader if phase == 'training' else validation_loader
+          for data in dataloader: 
+              img, target = data
+              img = Variable(img).cuda()\
+                  if 'cuda' in self.selected_device else Variable(img).cpu()
+              target = Variable(target).cuda()\
+                  if 'cuda' in self.selected_device else Variable(target).cpu()
+              # ===================forward=====================
+              output = model(img)
+              loss = criterion(output, target)
+              # ===================backward====================
+              optimizer.zero_grad()
+              # print(f'memory_allocated={torch.cuda.memory_allocated()/(1024.0*1024.0)}')
+              # print(f'memory_cached={torch.cuda.memory_cached()/(1024.0*1024.0)}')
+              if phase == 'training':
+                loss.backward()
+                optimizer.step()
+                current_step += 1
+              running_loss += loss.item()
+          # ===================log========================
+          epoch_loss = running_loss / len(dataloader) 
+          print(f'{phase}-epoch [{epoch+1:d}/{num_epochs:d}], loss:{epoch_loss:.4f}')
+          self.writer.add_scalar(f"{self.task_cfg['task_name']}-{phase}-loss", \
+                                    epoch_loss, epoch, time.time())
+          if phase == 'validation':
+            if loss < best_loss:
+              # best_model.load_state_dict(model.state_dict())
+              torch.save(model.state_dict(), f'./{weights_file}')
 
-        if epoch % 10 == 0:
-            pic = to_img(output.cpu().data)
-            save_image(pic, f'{dc_img}/image_{epoch:d}.png')
-            self.writer.add_image(f"{self.task_cfg['task_name']}-dc", pic, epoch, time.time())
-    torch.save(model.state_dict(), f'./{weights_file}')
+          if epoch % 10 == 0:
+              pic = to_img(output.cpu().data)
+              save_image(pic, f'{dc_img}/image_{epoch:d}.png')
+              self.writer.add_image(f"{self.task_cfg['task_name']}-dc", pic, epoch, time.time())
     print('Saving...')
+    # torch.save(best_model.state_dict(), f'./{weights_file}')

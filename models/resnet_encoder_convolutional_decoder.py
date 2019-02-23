@@ -15,7 +15,7 @@ class ResnetEncoderConvolutionalDecoder(nn.Module):
         self.fc0 = torch.nn.Linear(512 * 16 *16, 64*4*4)
         # decoder
         # 9 convolutional layers and 7 deconvolutional layers
-        # output sould be [B, C, W, H]
+        # output sould be [B, C, H, W]
         self.conv0 = nn.Conv2d(64, 128, kernel_size=3, stride=1,padding=1)
         self.deconv0 = nn.ConvTranspose2d(128,128,kernel_size=3,stride=3,padding=2)
         self.conv1 = nn.Conv2d(128,128,kernel_size=3,stride=1,padding=1)
@@ -31,7 +31,6 @@ class ResnetEncoderConvolutionalDecoder(nn.Module):
         self.conv6 = nn.Conv2d(64, 64, kernel_size = 3, stride = 1, padding = 1)
         self.deconv6 = nn.ConvTranspose2d(64, 32, kernel_size = 3, stride = 1, padding = 1)
         self.conv7 = nn.Conv2d(32, self.channels, kernel_size = 3, stride = 1, padding = 1)
-
 
     def encode(self, x):
         x=self.resnet(x)

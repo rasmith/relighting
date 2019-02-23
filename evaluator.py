@@ -7,13 +7,14 @@ from torch.utils.data import DataLoader
 from torch.utils.data import Subset
 from torchvision import transforms
 from torchvision.utils import save_image
+import samplers as s
 import os
 import concurrent.futures
 
 def to_img(x):
     x = 0.5 * (x + 1)
     x = x.clamp(0, 1)
-    x = x.view(x.size(0), 3, 256, 256)
+    x = x.view(x.size(0), 3, 128, 128)
     return x
   
 class Evaluator(object):
@@ -61,16 +62,13 @@ class Evaluator(object):
       torch.save(torch.squeeze(context_vector), f'{context_vector_file}')
       i = i + 1
 
-  def evaluate(self, sampler):
+  def evaluate(self, sampler_type):
     dataset = self.task_cfg['dataset']
     eval_dir = self.task_cfg['eval_dir']
     model = self.task_cfg['model']
-    if sampler == "validation":
-      sampler = self.task_cfg['validation_sampler']
-      eval_dir = f'{eval_dir}/validation'
-    else:
-      sampler = self.task_cfg['train_sampler']
-      eval_dir = f'{eval_dir}/training'
+    sampler = self.task_cfg[f'{sampler_type}_sampler']
+    eval_dir = f'{eval_dir}/{sampler_type}'
+    has_memory = isinstance(sampler, s.MemorySampler)
     weights_file = self.task_cfg['weights_file']
     shuffle = self.task_cfg['shuffle']
     if self.dataset_wrapper is not None:
@@ -82,18 +80,19 @@ class Evaluator(object):
     if not os.path.exists(eval_dir):
       os.mkdir(eval_dir)
     i = 0
-    grid_images = None
+    indices = self.task_cfg[f'{sampler_type}_indices']
     for data in dataloader:
+      img_number = indices[i]
       img, target = data
       img = Variable(img).cuda() if self.use_cuda else  Variable(img).cpu()
       target = Variable(target).cuda() if self.use_cuda else Variable(target).cpu()
       output = model(img)
       pic = to_img(output.cpu().data)
-      print (f"save_image ./{eval_dir}/image_%04d.png" % (i))
-      print (f"pic.shape = {pic.shape} output.shape = {output.shape} \
-          target.shape = {target.shape}")
-      save_image(pic, f'./{eval_dir}/image_%04d.png' % (i))
+      print (f'save_image ./{eval_dir}/image_{img_number:04}.png')
+      print (f'pic.shape = {pic.shape} output.shape = {output.shape} \
+          target.shape = {target.shape}')
+      save_image(pic, f'./{eval_dir}/image_{img_number:04}.png')
       if i < 10:
           out = to_img(torch.cat((output, target)).cpu().data)
-          self.writer.add_image(f'{self.task_cfg["task_name"]}-{i}-eval', out)
+          self.writer.add_image(f'{self.task_cfg["task_name"]}-{i}-eval-{sampler_type}', out)
       i = i + 1

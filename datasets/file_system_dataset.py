@@ -25,11 +25,13 @@ class FileSystemDataset(data.Dataset):
                                     'i': j, 'j' : k})
         self.flat_cfg =  [self.cfg[j][k] for j in self.cfg.keys() \
                                          for k in self.cfg[j].keys()]
+        self.last = None
 
     def __len__(self):
         return len(self.flat_cfg)
 
     def __getitem__(self, idx):
+        self.last = idx
         entry = self.flat_cfg[idx]
         image_path = "%s/%s" % (self.image_dir, entry['rendering'])
         matches  = re.search('out-(\d+)-(\d+).png', image_path)
