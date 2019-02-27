@@ -5,3 +5,4 @@ from models.convolutional_decoder import ConvolutionalDecoder
 from models.resnet11_encoder_128x128 import Resnet11Encoder128x128
 from models.conv11_decoder_128x128 import Conv11Decoder128x128
 from models.encoder_decoder import EncoderDecoder
+from models.discriminator import Discriminator
