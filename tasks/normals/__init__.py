@@ -14,11 +14,16 @@ import torch
 task_name = 'normals'
 
 cfg = {
-    'batch_size' : 32,
+    'annealing_step' : 80000,
+    # 'batch_size' : 32,
+    'batch_size' : 2,
+    'base_steps' : 25000,
     'cfg_file' : 'config.cfg',
     'criterion' : nn.MSELoss(),
-    'data_wrapper' : None,
-    # 'data_wrapper' : (lambda x : Subset(x, range(32))),
+    'criterion_gan': nn.MSELoss(),
+    'criterion_pixel_l1': nn.L1Loss(),
+    # 'data_wrapper' : None,
+    'data_wrapper' : (lambda x : Subset(x, range(32))),
     'dc_img' : f'dc_img/{task_name}',
     # 'enabled' : False,
     'enabled' : True,  # to run this task
@@ -26,7 +31,10 @@ cfg = {
     'evaluation_enabled': True, # to evaluate this task
     'image_dir' : 'out', # source "images"
     'input_dir' : '.', # base input for all data needed
+    'lambda_pixel': 100,
     'learning_rate' : 1e-4,
+    'learning_rate_discriminator' : 1e-4,
+    'log_to_tensorboard': False,
     'num_epochs' : 200,
     # 'num_epochs' : 2,
     'seed': (lambda : 42),
@@ -34,11 +42,13 @@ cfg = {
     'target_dir': f'targets/{task_name}',
     'target_transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),
     'task_name': f'{task_name}',
+    'trainer' : 'gan',
     'training_enabled': True, # to train this task
     'transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),
     'use_sampler': True, 
     'validation_split': .2,
     'weight_decay': 2e-6,
+    'weight_decay_discriminator': 2e-5,
     'weights_file' : f'weights/{task_name}.pth'
 }
 
@@ -47,25 +57,31 @@ class CfgLoader(object):
     self.cfg = cfg
 
   def get_cfg(self, device):
+    self.cfg['device'] = device
+    self.cfg['dataset'] = FileSystemDataset(cfg['input_dir'], cfg['cfg_file'],
+                                            cfg['image_dir'], cfg['target_dir'],
+                                            cfg['task_name'], cfg['transform'],
+                                            cfg['target_transform'])
     self.cfg['encoder'] = r.Resnet11Encoder128x128()
     self.cfg['decoder'] = r.Conv11Decoder128x128()
     self.cfg['activation'] = nn.Tanh()
     self.cfg['model'] = r.EncoderDecoder(self.cfg['encoder'],\
                                          self.cfg['decoder'],\
-                                         self.cfg['activation']).cuda(device)\
-       if "cuda" in device else r.EncoderDecoder(self.cfg['encoder'],\
-                                         self.cfg['decoder'],\
-                                         self.cfg['activation']).cpu()
-    self.cfg['dataset'] = FileSystemDataset(cfg['input_dir'], cfg['cfg_file'],
-                                            cfg['image_dir'], cfg['target_dir'],
-                                            cfg['task_name'], cfg['transform'],
-                                            cfg['target_transform'])
+                                         self.cfg['activation'])
+    self.cfg['discriminator'] = r.Discriminator()
     self.cfg['optimizer'] = Adam(cfg['model'].parameters(),
                                  lr=cfg['learning_rate'],
                                  weight_decay=cfg['weight_decay'])
-    self.cfg['optimizer_d'] = Adam(cfg['model'].parameters(),
-                                 lr=cfg['learning_rate'],
-                                 weight_decay=cfg['weight_decay'])
+    self.cfg['optimizer_discriminator'] = \
+      Adam(cfg['model'].parameters(), lr=cfg['learning_rate_discriminator'],
+            weight_decay =  cfg['weight_decay_discriminator'])
+    if device in 'cuda':
+      self.cfg['model'] = self.cfg['model'].cuda()
+      self.cfg['discriminator'] = self.cfg['discriminator'].cuda()
+      self.cfg['criterion'] = self.cfg['criterion'].cuda()
+      self.cfg['criterion_pixel_l1'] = self.cfg['criterion_pixel_l1'].cuda()
+      self.cfg['criterion_gan'] = self.cfg['criterion_gan'].cuda()
+
     if self.cfg['use_sampler']:
       self.cfg['shuffle'] = False
       if self.cfg['data_wrapper'] is not None:

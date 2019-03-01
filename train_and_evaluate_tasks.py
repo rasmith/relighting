@@ -1,7 +1,8 @@
 #!/usr/bin/env python 
 from evaluator import Evaluator
 from tensorboardX import SummaryWriter 
-from trainer import Trainer
+from trainers.trainer import Trainer
+from trainers.gan_trainer import GanTrainer
 import importlib
 import pkgutil
 import tasks
@@ -30,7 +31,9 @@ def main():
           cfg_loader = target_task.CfgLoader()
           if training_enabled:
             print(f'{modname} is enabled for training ...')
-            t = Trainer(cfg_loader, data_wrapper, writer)
+            t = GanTrainer(cfg_loader, data_wrapper, writer) \
+              if target_task.cfg['trainer'] == 'gan' else \
+                Trainer(cfg_loader, data_wrapper, writer) 
             t.init(device)
             t.train()
           if evaluation_enabled:
