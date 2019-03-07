@@ -14,16 +14,16 @@ import torch
 task_name = 'normals'
 
 cfg = {
-    'annealing_step' : 80000,
+    'annealing_step' : 1000,
     # 'batch_size' : 32,
-    'batch_size' : 2,
-    'base_steps' : 25000,
+    'batch_size' : 32,
+    'base_steps' : int(400/32),
     'cfg_file' : 'config.cfg',
     'criterion' : nn.MSELoss(),
     'criterion_gan': nn.MSELoss(),
     'criterion_pixel_l1': nn.L1Loss(),
     # 'data_wrapper' : None,
-    'data_wrapper' : (lambda x : Subset(x, range(32))),
+    'data_wrapper' : (lambda x : Subset(x, range(1024))),
     'dc_img' : f'dc_img/{task_name}',
     # 'enabled' : False,
     'enabled' : True,  # to run this task
@@ -34,9 +34,10 @@ cfg = {
     'lambda_pixel': 100,
     'learning_rate' : 1e-4,
     'learning_rate_discriminator' : 1e-4,
-    'log_to_tensorboard': False,
-    'num_epochs' : 200,
+    'log_to_tensorboard': True,
+    'num_epochs' : 400,
     # 'num_epochs' : 2,
+    'phases': ['training', 'validation'],
     'seed': (lambda : 42),
     'shuffle': True,
     'target_dir': f'targets/{task_name}',
@@ -69,18 +70,18 @@ class CfgLoader(object):
                                          self.cfg['decoder'],\
                                          self.cfg['activation'])
     self.cfg['discriminator'] = r.Discriminator()
-    self.cfg['optimizer'] = Adam(cfg['model'].parameters(),
-                                 lr=cfg['learning_rate'],
-                                 weight_decay=cfg['weight_decay'])
-    self.cfg['optimizer_discriminator'] = \
-      Adam(cfg['model'].parameters(), lr=cfg['learning_rate_discriminator'],
-            weight_decay =  cfg['weight_decay_discriminator'])
     if device in 'cuda':
       self.cfg['model'] = self.cfg['model'].cuda()
       self.cfg['discriminator'] = self.cfg['discriminator'].cuda()
       self.cfg['criterion'] = self.cfg['criterion'].cuda()
       self.cfg['criterion_pixel_l1'] = self.cfg['criterion_pixel_l1'].cuda()
       self.cfg['criterion_gan'] = self.cfg['criterion_gan'].cuda()
+    self.cfg['optimizer'] = Adam(cfg['model'].parameters(),
+                                 lr=cfg['learning_rate'],
+                                 weight_decay=cfg['weight_decay'])
+    self.cfg['optimizer_discriminator'] = \
+      Adam(cfg['discriminator'].parameters(), lr=cfg['learning_rate_discriminator'],
+            weight_decay =  cfg['weight_decay_discriminator'])
 
     if self.cfg['use_sampler']:
       self.cfg['shuffle'] = False

@@ -9,7 +9,8 @@ import torch
 import time
 import curses
 import numpy as np
-from tqdm import tqdm
+import sys
+# from tqdm import tqdm
 from collections import OrderedDict
 from torch import Tensor
 
@@ -20,25 +21,67 @@ def to_img(x):
     return x
 
 def format_time(seconds):
-    days, seconds = divmod(seconds, 86400)
     hours, seconds = divmod(seconds, 3600) 
     minutes, seconds = divmod(seconds, 60)
-    return f'{days}d{hours}h{minutes}m{seconds:2.2f}s'
+    return f'{int(hours)}:{int(minutes)}:{seconds:2.2f}'
 
-def perform_step(img, target, generator, discriminator,\
+def perform_validation_step(img, target, generator, discriminator,\
     optimizer_generator, optimizer_discriminator,\
     criterion_pixel_l1, criterion_pixel_l2, criterion_gan, optimization_choice,\
-    cfg):
+    stats, cfg):
+    torch.cuda.empty_cache()
+    
+    with torch.no_grad():
+      lambda_pixel = cfg['lambda_pixel']
+      ones = Variable(Tensor(np.ones((img.size(0), 1, 1, 1))), requires_grad=False)
+      zeros= Variable(Tensor(np.zeros((img.size(0), 1, 1, 1))), requires_grad=False)
+      if cfg['device'] in 'cuda':
+        ones = ones.cuda()
+        zeros = zeros.cuda()
+
+      output = generator(img) # prediction with generator
+
+      loss_pixel_l1 = criterion_pixel_l1(output, target) # get pixel-wise l1 loss
+      loss_pixel_l2 = criterion_pixel_l2(output, target) # get pixel-wise l2 loss
+
+      fakeness = discriminator(output, img) # ask discriminator how fake this is
+      loss_gan =  criterion_gan(fakeness, ones) # get discriminator loss
+      loss_generator = loss_gan + lambda_pixel * loss_pixel_l1    
+
+      realness = discriminator(target, img)
+      loss_gan_real = criterion_gan(realness, ones)
+
+      fakeness = discriminator(output.detach(), img)
+      loss_gan_fake = criterion_gan(fakeness, zeros)
+
+      loss_discriminator = 0.5 * (loss_gan_real + loss_gan_fake)
+
+    del fakeness
+    del realness
+    del ones
+    del zeros
+    del loss_gan_real
+    del loss_gan_fake
+    torch.cuda.empty_cache()
+
+    return loss_generator, loss_discriminator, loss_pixel_l1, loss_pixel_l2, output
+
+def perform_gan_step(img, target, generator, discriminator,\
+    optimizer_generator, optimizer_discriminator,\
+    criterion_pixel_l1, criterion_pixel_l2, criterion_gan, optimization_choice,\
+    stats, cfg):
+    torch.cuda.empty_cache()
+    
     lambda_pixel = cfg['lambda_pixel']
     ones = Variable(Tensor(np.ones((img.size(0), 1, 1, 1))), requires_grad=False)
     zeros= Variable(Tensor(np.zeros((img.size(0), 1, 1, 1))), requires_grad=False)
+
     if cfg['device'] in 'cuda':
       ones = ones.cuda()
       zeros = zeros.cuda()
 
     # =============train generator===================
-    if optimization_choice in ['base', 'gan']:
-      optimizer_generator.zero_grad()
+    optimizer_generator.zero_grad()
 
     output = generator(img) # prediction with generator
 
@@ -49,16 +92,10 @@ def perform_step(img, target, generator, discriminator,\
     loss_gan =  criterion_gan(fakeness, ones) # get discriminator loss
     loss_generator = loss_gan + lambda_pixel * loss_pixel_l1    
 
-    if optimization_choice in ['base', 'gan']:
-      if optimization_choice == 'base':
-        loss_pixel_l2.backward()
-      else:
-        loss_generator.backward()
-      optimizer_generator.step()
-
+    loss_generator.backward()
+    optimizer_generator.step()
     # =============train discriminator===================
-    if optimization_choice == 'gan':
-      optimizer_discriminator.zero_grad()
+    optimizer_discriminator.zero_grad()
 
     # real loss
     realness = discriminator(target, img)
@@ -70,11 +107,104 @@ def perform_step(img, target, generator, discriminator,\
 
     loss_discriminator = 0.5 * (loss_gan_real + loss_gan_fake)
 
-    if optimization_choice == 'gan':
-      loss_discriminator.backward()
-      optimizer_discriminator.step()
+    loss_discriminator.backward()
+    optimizer_discriminator.step()
 
-    return loss_generator, loss_discriminator, loss_pixel_l1, loss_pixel_l2
+    del fakeness
+    del realness
+    del ones
+    del zeros
+    del loss_gan_real
+    del loss_gan_fake
+    torch.cuda.empty_cache()
+
+    return loss_generator, loss_discriminator, loss_pixel_l1, loss_pixel_l2, output
+
+def perform_base_step(img, target, generator, discriminator,\
+    optimizer_generator, optimizer_discriminator,\
+    criterion_pixel_l1, criterion_pixel_l2, criterion_gan, optimization_choice,\
+    stats, cfg):
+    torch.cuda.empty_cache()
+    
+    optimizer_generator.zero_grad()
+
+    output = generator(img) # prediction with generator
+
+    loss_pixel_l2 = criterion_pixel_l2(output, target) # get pixel-wise l2 loss
+
+
+    loss_pixel_l2.backward()
+    optimizer_generator.step()
+
+    torch.cuda.empty_cache()
+
+    return 0.0, 0.0, 0.0, loss_pixel_l2, output
+
+# def perform_step(img, target, generator, discriminator,\
+    # optimizer_generator, optimizer_discriminator,\
+    # criterion_pixel_l1, criterion_pixel_l2, criterion_gan, optimization_choice,\
+    # stats, cfg):
+    # torch.cuda.empty_cache()
+    
+    # lambda_pixel = cfg['lambda_pixel']
+    # ones = Variable(Tensor(np.ones((img.size(0), 1, 1, 1))), requires_grad=False)
+    # zeros= Variable(Tensor(np.zeros((img.size(0), 1, 1, 1))), requires_grad=False)
+    # # if stats['global_training_step'] > cfg['annealing_step']:
+      # # if not stats['annealed']:
+        # # optimizer_generator.lr /= 1.0
+        # # stats['annealed'] = True
+
+    # if cfg['device'] in 'cuda':
+      # ones = ones.cuda()
+      # zeros = zeros.cuda()
+
+    # # =============train generator===================
+    # if optimization_choice in ['base', 'gan', 'none']:
+      # optimizer_generator.zero_grad()
+
+    # output = generator(img) # prediction with generator
+
+    # loss_pixel_l1 = criterion_pixel_l1(output, target) # get pixel-wise l1 loss
+    # loss_pixel_l2 = criterion_pixel_l2(output, target) # get pixel-wise l2 loss
+
+    # fakeness = discriminator(output, img) # ask discriminator how fake this is
+    # loss_gan =  criterion_gan(fakeness, ones) # get discriminator loss
+    # loss_generator = loss_gan + lambda_pixel * loss_pixel_l1    
+
+    # if optimization_choice in ['base', 'gan']:
+      # if optimization_choice == 'base':
+        # loss_pixel_l2.backward()
+      # else:
+        # loss_generator.backward()
+      # optimizer_generator.step()
+
+    # # =============train discriminator===================
+    # if optimization_choice in ['base', 'gan', 'none']:
+      # optimizer_discriminator.zero_grad()
+
+    # # real loss
+    # realness = discriminator(target, img)
+    # loss_gan_real = criterion_gan(realness, ones)
+
+    # # fake loss
+    # fakeness = discriminator(output.detach(), img)
+    # loss_gan_fake = criterion_gan(fakeness, zeros)
+
+    # loss_discriminator = 0.5 * (loss_gan_real + loss_gan_fake)
+
+    # if optimization_choice == 'gan':
+      # loss_discriminator.backward()
+      # optimizer_discriminator.step()
+
+    # del fakeness
+    # del realness
+    # del ones
+    # del zeros
+    # del loss_gan_real
+    # del loss_gan_fake
+    # torch.cuda.empty_cache()
+
+    # return loss_generator, loss_discriminator, loss_pixel_l1, loss_pixel_l2, output
     
 def update_stat_average(stats, value_name, step_name, value):
   step = stats[step_name]
@@ -97,7 +227,7 @@ def initialize_stats(num_epochs):
        'validation_step': 0, 'global_training_step': 0,\
        'global_validation_step': 0, 'epoch': 0, 'num_epochs':num_epochs,\
        'avg_training_time': 0.0, 'avg_validation_time': 0.0,\
-       'avg_epoch_time':0.0, 'optimization_choice':'none'}
+       'avg_epoch_time':0.0, 'optimization_choice':'none', 'annealed':False}
 
 def update_etas(phase, stats):
   avg_phase_time = stats[f'avg_{phase}_time']
@@ -119,7 +249,7 @@ def update_training_stats(phase, stats, optimization_choice,\
   add_stat(stats, 't', current_time - phase_start)
   update_etas(phase, stats)
 
-def update_progress_bar(bar, stats):
+def update_progress_bar(stats):
   tp = format_time(stats['tp'])
   etap = format_time(stats['etap'])
   t = format_time(stats['t'])
@@ -128,10 +258,19 @@ def update_progress_bar(bar, stats):
     # {stats['optimization_choice']: >4} lg:{stats['loss_generator']:7.4f}\
     # ld:{stats['loss_discriminator']:7.4f} l1:{stats['l1']:7.4f}\
     # l2:{stats['l2']:7.4f} tp:{tp} etap:{etap} t:{t} eta:{eta}"
-  desc = f"[{stats['epoch']:04d}] {stats['phase']:#>10}\
-    {stats['optimization_choice']: >4} \
-    l2:{stats['l2']:7.4f} etap:{etap} eta:{eta}"
-  bar.update(1)
+
+  phase = stats['phase'][0]
+  optimization_choice = stats['optimization_choice'][0]
+  desc = (f"[{stats['epoch']:03d}] {phase} "
+          f"{optimization_choice} l2:{stats['l2']:6.4f} "
+          f"l1:{stats['l1']:6.4f} "
+          f" etap:{etap} eta:{eta}"
+          f" {stats['global_training_step']}"
+          f" {stats['global_validation_step']}"
+          f" {torch.cuda.memory_allocated()/(1024.0*1024.0):6.2f}"
+  )
+  sys.stdout.write(" \r")
+  sys.stdout.write(desc)
 
 class GanTrainer(object):
   def __init__(self, cfg_loader, dataset_wrapper = None, writer = None):
@@ -190,67 +329,135 @@ class GanTrainer(object):
       dataset = self.dataset_wrapper(dataset)
     if not os.path.exists(dc_img):
       os.mkdir(dc_img)
-    training_loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
-      sampler=training_sampler)
-    validation_loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
-      sampler=validation_sampler)
     print(f'pytorch version = {torch.__version__}')
     print(f'num_epochs = {num_epochs} len(dataset) = {len(dataset)}')
     training_stats = initialize_stats(num_epochs)
     global_start = time.time()
     for epoch in range(num_epochs):
         epoch_start = time.time()
-        for phase in ['training', 'validation']:
+        for phase in self.task_cfg['phases']:
           phase_start = time.time()
-          dataloader = training_loader if phase == 'training' else validation_loader
+    # training_loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
+      # sampler=training_sampler, pin_memory = True)
+    # validation_loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
+      # sampler=validation_sampler, pin_memory =  True)
+          # dataloader = training_loader if phase == 'training' else validation_loader
+          if phase == 'training':
+            dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
+                                    sampler=training_sampler, pin_memory = True)
+            torch.enable_grad()
+            generator.train()
+            discriminator.train()
+          else:
+            dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
+                           sampler=validation_sampler, pin_memory =  True)
+            torch.no_grad()
+            generator.eval()
+            discriminator.eval()
+            criterion_gan.eval()
+            criterion_gan.eval()
+            criterion_pixel_l1.eval()
+            criterion_pixel_l2.eval()
+
           data_size = len(dataloader)
           reset_stats(phase, data_size, training_stats)
-          bar = tqdm(total = data_size)
-          desc = f"[{training_stats['epoch']:04d}] {training_stats['phase']: >10}"
-          bar.set_description(desc)
+          logged_scalars = {}
           for data in dataloader: 
               img, target = data
-              img = Variable(img).cuda()\
-                  if 'cuda' in self.selected_device else Variable(img).cpu()
-              target = Variable(target).cuda()\
-                  if 'cuda' in self.selected_device else Variable(target).cpu()
+              img = Variable(img, requires_grad = False).cuda()\
+                  if 'cuda' in self.selected_device else \
+                    Variable(img, requires_grad = False).cpu()
+              target = Variable(target, requires_grad = False).cuda()\
+                  if 'cuda' in self.selected_device else \
+                    Variable(target, requires_grad = False).cpu()
               optimization_choice = 'none'
               if phase == 'training':
                 optimization_choice = 'base'
                 if training_stats['global_training_step'] > base_steps:
                   optimization_choice = 'gan'
-              loss_generator, loss_discriminator, loss_pixel_l1, loss_pixel_l2 =\
-                perform_step(img, target, generator, discriminator,\
-                             optimizer_generator, optimizer_discriminator,\
-                             criterion_pixel_l1, criterion_pixel_l2,\
-                             criterion_gan, optimization_choice, self.task_cfg)
+                  loss_generator, loss_discriminator, loss_pixel_l1, loss_pixel_l2, output  =\
+                    perform_gan_step(img, target, generator, discriminator,\
+                                 optimizer_generator, optimizer_discriminator,\
+                                 criterion_pixel_l1, criterion_pixel_l2,\
+                                 criterion_gan, optimization_choice, training_stats,\
+                                 self.task_cfg)
+                else:
+                  loss_generator, loss_discriminator, loss_pixel_l1, loss_pixel_l2, output  =\
+                    perform_base_step(img, target, generator, discriminator,\
+                                 optimizer_generator, optimizer_discriminator,\
+                                 criterion_pixel_l1, criterion_pixel_l2,\
+                                 criterion_gan, optimization_choice, training_stats,\
+                                 self.task_cfg)
+              else:
+                  loss_generator, loss_discriminator, loss_pixel_l1, loss_pixel_l2, output  =\
+                    perform_validation_step(img, target, generator, discriminator,\
+                                 optimizer_generator, optimizer_discriminator,\
+                                 criterion_pixel_l1, criterion_pixel_l2,\
+                                 criterion_gan, optimization_choice, training_stats,\
+                                 self.task_cfg)
+
+              # if phase == 'validation':
+                # with torch.no_grad():
+                  # loss_generator, loss_discriminator, loss_pixel_l1, loss_pixel_l2, output  =\
+                    # perform_step(img, target, generator, discriminator,\
+                                 # optimizer_generator, optimizer_discriminator,\
+                                 # criterion_pixel_l1, criterion_pixel_l2,\
+                                 # criterion_gan, optimization_choice, training_stats,\
+                                 # self.task_cfg)
+              # else:
+                # loss_generator, loss_discriminator, loss_pixel_l1, loss_pixel_l2, output  =\
+                  # perform_step(img, target, generator, discriminator,\
+                               # optimizer_generator, optimizer_discriminator,\
+                               # criterion_pixel_l1, criterion_pixel_l2,\
+                               # criterion_gan, optimization_choice, training_stats,\
+                               # self.task_cfg)
               #================update stats and progress bar===================
               update_training_stats(phase, training_stats, optimization_choice,\
                 loss_generator, loss_discriminator, loss_pixel_l1,\
                 loss_pixel_l2, phase_start)
-              update_progress_bar(bar, training_stats)
+              update_progress_bar(training_stats)
               training_stats[f'global_{phase}_step'] += 1
               training_stats[f'{phase}_step'] += 1
+              logged_scalars = {'l1': loss_pixel_l1.item() \
+                                        if isinstance(loss_pixel_l1, torch.Tensor) \
+                                        else loss_pixel_l1,
+                                'l2': loss_pixel_l2.item() \
+                                        if isinstance(loss_pixel_l2, torch.Tensor) \
+                                        else loss_pixel_l2,
+                                 'g': loss_generator.item() \
+                                        if isinstance(loss_generator, torch.Tensor)
+                                        else loss_generator,
+                                 'd': loss_discriminator.item() \
+                                        if isinstance(loss_discriminator, torch.Tensor) \
+                                        else loss_discriminator}
+              del img
+              del target
+              del loss_generator
+              del loss_discriminator
+              del loss_pixel_l1
+              del loss_pixel_l2
+          del dataloader
           phase_end = time.time()
           update_stat_average(training_stats, f'avg_{phase}_time',\
                               f'global_{phase}_step', phase_end - phase_start)
           # ===================log========================
           if self.task_cfg['log_to_tensorboard']: 
-            self.writer.add_scalar(f"{self.task_cfg['task_name']}-{phase}-loss",\
-                                      epoch_loss, epoch, time.time())
+            for k in logged_scalars.keys():
+              self.writer.add_scalar(f"{self.task_cfg['task_name']}-{phase}-{k}",\
+                          logged_scalars[k], epoch, time.time())
           if phase == 'validation':
             if training_stats['l2'] < best_loss:
               best_model_state_dict = \
                 {k:v.to('cpu') for k, v in generator.state_dict().items()}
               best_model_state_dict = OrderedDict(best_model_state_dict)
               # torch.save(model.state_dict(), f'./{weights_file}')
-          bar.close()
+          sys.stdout.write("\n")
 
           epoch_end = time.time()
           #=========update stats and progress bar===================
           update_stat_average(training_stats, 'avg_epoch_time', 'epoch',\
                               epoch_end - epoch_start)
-          update_progress_bar(bar, training_stats)
+          update_progress_bar(training_stats)
           #========tensorboard==============
           if epoch % 10 == 0:
               if self.task_cfg['log_to_tensorboard']: 

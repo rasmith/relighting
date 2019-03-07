@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import models.resnet as r
+import models.resnet_cp as r
 
 class Resnet11Encoder128x128(nn.Module):
 
