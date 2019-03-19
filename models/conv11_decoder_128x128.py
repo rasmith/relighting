@@ -6,7 +6,7 @@ from inplace_abn.modules.bn import InPlaceABN
 class Conv11Decoder128x128(nn.Module):
 
   def __init__(self, activation = None, use_inplace_bn = True,\
-              use_dropout = False, use_checkpointed_bn = True):
+              use_dropout = True, use_checkpointed_bn = True):
     super(Conv11Decoder128x128, self).__init__()
     self.input_width  = 4
     self.input_height = 4
@@ -112,7 +112,7 @@ class Conv11Decoder128x128(nn.Module):
       if self.use_dropout:
         x =  self.dropout2(self.abn2(self.deconv2(x)))
       else:
-        x =  self.abn2(self.deconv2(x))
+        x =  self.abn2(self.deconv(x))
       x =  self.abn3(self.conv3(x))
       if self.use_dropout:
         x =  self.dropout4(self.abn4(self.deconv4(x)))

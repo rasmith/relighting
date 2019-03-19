@@ -78,7 +78,7 @@ class Evaluator(object):
     model.load_state_dict(torch.load(f'./{weights_file}'))
     model.eval()
     if not os.path.exists(eval_dir):
-      os.mkdir(eval_dir)
+      os.makedirs(eval_dir)
     i = 0
     indices = self.task_cfg[f'{sampler_type}_indices']
     for data in dataloader:

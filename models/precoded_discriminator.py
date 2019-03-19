@@ -1,19 +1,15 @@
 import torch
 import torch.nn as nn
+from inplace_abn.modules.bn import InPlaceABN
+import models.precoder  as p
 
-class Discriminator(nn.Module):
-  def __init__(self, inplace_bn = False, checkpointed_bn = True):
-    super(Discriminator, self).__init__()
+class PrecodedDiscriminator(nn.Module):
+  def __init__(self, inplace_bn = True):
+    super(PrecodedDiscriminator, self).__init__()
+    self.precoder = p.Precoder(19)
     self.input_height = 128
     self.input_width = 128
     self.inplace_bn = inplace_bn
-    self.checkpointed_bn = checkpointed_bn
-    if self.checkpointed_bn:
-      self.inplace_bn = False
-      from torch.utils.checkpoint import checkpoint
-    if self.inplace_bn:
-      from inplace_abn.modules.bn import InPlaceABN
-      
     # layer 0
     self.conv0 = nn.Conv2d(6, 64, kernel_size = 4, stride = 2, padding = 1)
     self.relu0 = nn.LeakyReLU(0.2, inplace=True)
@@ -57,12 +53,8 @@ class Discriminator(nn.Module):
     self.avg_out = nn.AvgPool2d(kernel_size=8)
 
   def forward(self, x, y):
-    if self.checkpointed_bn:
-      from torch.utils.checkpoint import checkpoint
-    if self.inplace_bn:
-      from inplace_abn.modules.bn import InPlaceABN
-    z = torch.cat((x, y), 1)
-    # layer 0
+    w = self.precoder(y)
+    z = torch.cat((x, w), 1)
     z = self.relu0(self.conv0(z))
     if self.inplace_bn:
       z = self.abn1(self.conv1(z))
@@ -70,28 +62,10 @@ class Discriminator(nn.Module):
       z = self.abn3(self.conv3(z))
       z = self.abn4(self.conv4(self.pad4(z)))
     else:
-      if self.checkpointed_bn:
-        # layer 1
-        z = self.conv1(z) 
-        z = checkpoint(lambda y: self.bn1(y), z)
-        z = self.relu1(z)
-        # layer 2
-        z = self.conv2(z)
-        z = checkpoint(lambda y: self.bn2(y), z)
-        z = self.relu2(z)
-        # layer 3
-        z = self.conv3(z)
-        z = checkpoint(lambda y: self.bn3(y), z)
-        z = self.relu3(z)
-        # layer 4
-        z = self.conv4(self.pad4(z))
-        z = checkpoint(lambda y: self.bn4(y), z)
-        z = self.relu4(z)
-      else:
-        z = self.relu1(self.bn1(self.conv1(z)))
-        z = self.relu2(self.bn2(self.conv2(z)))
-        z = self.relu3(self.bn3(self.conv3(z)))
-        z = self.relu4(self.bn4(self.conv4(self.pad4(z))))
+      z = self.relu1(self.bn1(self.conv1(z)))
+      z = self.relu2(self.bn2(self.conv2(z)))
+      z = self.relu3(self.bn3(self.conv3(z)))
+      z = self.relu4(self.bn4(self.conv4(self.pad4(z))))
     z = self.conv5(self.pad5(z))
     z = self.avg_out(self.sig_out(z))
     return z

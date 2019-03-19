@@ -17,7 +17,7 @@ cfg = {
     'annealing_step' : 1000,
     # 'batch_size' : 32,
     'batch_size' : 32,
-    'base_steps' : int(400/32),
+    'base_steps' : int(32000/32),
     'cfg_file' : 'config.cfg',
     'criterion' : nn.MSELoss(),
     'criterion_gan': nn.MSELoss(),
