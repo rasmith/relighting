@@ -25,20 +25,19 @@ def main():
                 if 'training_enabled' in target_task.cfg else True
       evaluation_enabled = target_task.cfg['evaluation_enabled'] \
                 if 'evaluation_enabled' in target_task.cfg else True
-      data_wrapper = target_task.cfg['data_wrapper']
       if enabled:
           writer = SummaryWriter(f'{log_dir}/{time.ctime()}')
           cfg_loader = target_task.CfgLoader()
           if training_enabled:
             print(f'{modname} is enabled for training ...')
-            t = GanTrainer(cfg_loader, data_wrapper, writer) \
+            t = GanTrainer(cfg_loader, writer) \
               if target_task.cfg['trainer'] == 'gan' else \
-                Trainer(cfg_loader, data_wrapper, writer) 
+                Trainer(cfg_loader, writer) 
             t.init(device)
             t.train()
           if evaluation_enabled:
             print(f'{modname} is enabled for evaluation ...')
-            e = Evaluator(cfg_loader, data_wrapper, writer)
+            e = Evaluator(cfg_loader, writer)
             e.init(device)
             e.evaluate('validation')
             e.evaluate('training')

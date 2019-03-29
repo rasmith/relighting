@@ -273,10 +273,9 @@ def update_progress_bar(stats):
   sys.stdout.write(desc)
 
 class GanTrainer(object):
-  def __init__(self, cfg_loader, dataset_wrapper = None, writer = None):
+  def __init__(self, cfg_loader, writer = None):
     self.cfg_loader = cfg_loader 
     self.task_cfg = {}
-    self.dataset_wrapper = dataset_wrapper
     self.initialized = False
     self.writer = writer 
 
@@ -311,6 +310,8 @@ class GanTrainer(object):
     criterion_pixel_l1 = self.task_cfg['criterion_pixel_l1']
     criterion_gan = self.task_cfg['criterion_gan']
     dataset = self.task_cfg['dataset']
+    training_dataset = self.task_cfg['training_dataset']
+    validation_dataset = self.task_cfg['validation_dataset']
     dc_img = self.task_cfg['dc_img']
     generator = self.task_cfg['model']
     discriminator = self.task_cfg['discriminator']
@@ -325,8 +326,6 @@ class GanTrainer(object):
     weights_file = self.task_cfg['weights_file']
     best_loss = 10000000.0
 
-    if self.dataset_wrapper is not None:
-      dataset = self.dataset_wrapper(dataset)
     if not os.path.exists(dc_img):
       os.mkdir(dc_img)
     print(f'pytorch version = {torch.__version__}')
@@ -342,15 +341,19 @@ class GanTrainer(object):
     # validation_loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
       # sampler=validation_sampler, pin_memory =  True)
           # dataloader = training_loader if phase == 'training' else validation_loader
+          dataloader = DataLoader(self.task_cfg[f'{phase}_dataset'],\
+                                  batch_size = batch_size, shuffle = shuffle,
+                                  sampler = self.task_cfg[f'{phase}_sampler'],
+                                  pin_memory = True)
           if phase == 'training':
-            dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
-                                    sampler=training_sampler, pin_memory = True)
+            # dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
+                                    # sampler=training_sampler, pin_memory = True)
             torch.enable_grad()
             generator.train()
             discriminator.train()
           else:
-            dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
-                           sampler=validation_sampler, pin_memory =  True)
+            # dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
+                           # sampler=validation_sampler, pin_memory =  True)
             torch.no_grad()
             generator.eval()
             discriminator.eval()

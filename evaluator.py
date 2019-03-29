@@ -18,10 +18,9 @@ def to_img(x):
     return x
   
 class Evaluator(object):
-  def __init__(self, cfg_loader, dataset_wrapper = None, writer = None):
+  def __init__(self, cfg_loader, writer = None):
     self.cfg_loader = cfg_loader 
     self.task_cfg = {}
-    self.dataset_wrapper = dataset_wrapper
     self.writer = writer
 
   def init(self, which_device):
@@ -43,8 +42,6 @@ class Evaluator(object):
     model = self.task_cfg['model']
     weights_file = self.task_cfg['weights_file']
     print(f'weights_file={weights_file}')
-    if self.dataset_wrapper is not None:
-      dataset = self.dataset_wrapper(dataset)
     dataloader = DataLoader(dataset, batch_size=1)
 
     model.load_state_dict(torch.load(f'./{weights_file}'))
@@ -63,36 +60,28 @@ class Evaluator(object):
       i = i + 1
 
   def evaluate(self, sampler_type):
-    dataset = self.task_cfg['dataset']
     eval_dir = self.task_cfg['eval_dir']
     model = self.task_cfg['model']
-    sampler = self.task_cfg[f'{sampler_type}_sampler']
     eval_dir = f'{eval_dir}/{sampler_type}'
-    has_memory = isinstance(sampler, s.MemorySampler)
     weights_file = self.task_cfg['weights_file']
-    shuffle = self.task_cfg['shuffle']
-    if self.dataset_wrapper is not None:
-      dataset = self.dataset_wrapper(dataset)
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=shuffle, sampler = sampler)
-
     model.load_state_dict(torch.load(f'./{weights_file}'))
+    dataset = self.task_cfg['dataset']
     model.eval()
     if not os.path.exists(eval_dir):
       os.makedirs(eval_dir)
-    i = 0
-    indices = self.task_cfg[f'{sampler_type}_indices']
-    for data in dataloader:
-      img_number = indices[i]
-      img, target = data
-      img = Variable(img).cuda() if self.use_cuda else  Variable(img).cpu()
+    for i, img_number in enumerate(self.task_cfg[f'{sampler_type}_indices']):
+      value, target = dataset[img_number]
+      value = value.view(1, *value.shape)
+      target = target.view(1, *target.shape)
+      value = Variable(value).cuda() if self.use_cuda else  Variable(value).cpu()
       target = Variable(target).cuda() if self.use_cuda else Variable(target).cpu()
-      output = model(img)
+      print (f'value.shape = {value.shape}')
+      output = model(value)
       pic = to_img(output.cpu().data)
       print (f'save_image ./{eval_dir}/image_{img_number:04}.png')
-      print (f'pic.shape = {pic.shape} output.shape = {output.shape} \
-          target.shape = {target.shape}')
+      print (f'pic.shape = {pic.shape} output.shape = {output.shape}')
+      print (f'target.shape = {target.shape}')
       save_image(pic, f'./{eval_dir}/image_{img_number:04}.png')
       if i < 10:
           out = to_img(torch.cat((output, target)).cpu().data)
           self.writer.add_image(f'{self.task_cfg["task_name"]}-{i}-eval-{sampler_type}', out)
-      i = i + 1

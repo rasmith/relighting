@@ -17,16 +17,16 @@ cfg = {
     'annealing_step' : 1000,
     # 'batch_size' : 32,
     'batch_size' : 32,
-    'base_steps' : int(32000/32),
+    'base_steps' : int(128/32),
     'cfg_file' : 'config.cfg',
     'criterion' : nn.MSELoss(),
     'criterion_gan': nn.MSELoss(),
     'criterion_pixel_l1': nn.L1Loss(),
     # 'data_wrapper' : None,
-    'data_wrapper' : (lambda x : Subset(x, range(1024))),
+    'data_wrapper' : (lambda x : Subset(x, range(128))),
     'dc_img' : f'dc_img/{task_name}',
     # 'enabled' : False,
-    'enabled' : True,  # to run this task
+    'enabled' : False,  # to run this task
     'eval_dir':f'eval/{task_name}',
     'evaluation_enabled': True, # to evaluate this task
     'image_dir' : 'out', # source "images"
@@ -39,7 +39,7 @@ cfg = {
     # 'num_epochs' : 2,
     'phases': ['training', 'validation'],
     'seed': (lambda : 42),
-    'shuffle': True,
+    'shuffle': False,
     'target_dir': f'targets/{task_name}',
     'target_transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),
     'task_name': f'{task_name}',
@@ -63,6 +63,10 @@ class CfgLoader(object):
                                             cfg['image_dir'], cfg['target_dir'],
                                             cfg['task_name'], cfg['transform'],
                                             cfg['target_transform'])
+    if self.cfg['data_wrapper'] is not None:
+      self.cfg['wrapped_dataset'] = self.cfg['data_wrapper'](self.cfg['dataset'])
+    else :
+      self.cfg['wrapped_dataset'] = self.cfg['dataset']
     self.cfg['encoder'] = r.Resnet11Encoder128x128()
     self.cfg['decoder'] = r.Conv11Decoder128x128()
     self.cfg['activation'] = nn.Tanh()
@@ -82,23 +86,20 @@ class CfgLoader(object):
     self.cfg['optimizer_discriminator'] = \
       Adam(cfg['discriminator'].parameters(), lr=cfg['learning_rate_discriminator'],
             weight_decay =  cfg['weight_decay_discriminator'])
-
-    if self.cfg['use_sampler']:
-      self.cfg['shuffle'] = False
-      if self.cfg['data_wrapper'] is not None:
-        dataset_size = len(self.cfg['data_wrapper'](self.cfg['dataset']))
-      else:
-        dataset_size = len(self.cfg['dataset'])
-
-      indices = list(range(dataset_size))
-      split = int(np.floor(self.cfg['validation_split'] * dataset_size))
-      np.random.seed(self.cfg['seed']())
-      np.random.shuffle(indices)
-      training_indices, validation_indices = indices[split:], indices[:split]
-      self.cfg['indices'] = indices
-      self.cfg['training_indices'] = training_indices
-      self.cfg['validation_indices'] = validation_indices
-      self.cfg['training_sampler'] = s.MemorySampler(SubsetRandomSampler(training_indices))
-      self.cfg['validation_sampler'] = s.MemorySampler(SubsetRandomSampler(validation_indices))
+    dataset_size = len(self.cfg['wrapped_dataset']) 
+    indices = list(range(dataset_size))
+    split = int(np.floor(self.cfg['validation_split'] * dataset_size))
+    np.random.seed(self.cfg['seed']())
+    np.random.shuffle(indices)
+    training_indices, validation_indices = indices[split:], indices[:split]
+    self.cfg['indices'] = indices
+    self.cfg['training_indices'] = training_indices
+    self.cfg['validation_indices'] = validation_indices
+    self.cfg['training_dataset'] = Subset(self.cfg['wrapped_dataset'], \
+                                          training_indices)
+    self.cfg['validation_dataset'] = Subset(self.cfg['wrapped_dataset'], \
+                                          validation_indices)
+    self.cfg['training_sampler'] = None
+    self.cfg['validation_sampler'] = None
     return self.cfg
 
