@@ -86,7 +86,12 @@ class CfgLoader(object):
     self.cfg['optimizer_discriminator'] = \
       Adam(cfg['discriminator'].parameters(), lr=cfg['learning_rate_discriminator'],
             weight_decay =  cfg['weight_decay_discriminator'])
-    dataset_size = len(self.cfg['wrapped_dataset']) 
+    if self.cfg['use_sampler']:
+      self.cfg['shuffle'] = False
+      if self.cfg['data_wrapper'] is not None:
+        dataset_size = len(self.cfg['data_wrapper'](self.cfg['dataset']))
+      else:
+        dataset_size = len(self.cfg['dataset'])
     indices = list(range(dataset_size))
     split = int(np.floor(self.cfg['validation_split'] * dataset_size))
     np.random.seed(self.cfg['seed']())
