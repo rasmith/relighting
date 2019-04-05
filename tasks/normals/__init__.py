@@ -26,7 +26,7 @@ cfg = {
     'data_wrapper' : (lambda x : Subset(x, range(128))),
     'dc_img' : f'dc_img/{task_name}',
     # 'enabled' : False,
-    'enabled' : False,  # to run this task
+    'enabled' : True,  # to run this task
     'eval_dir':f'eval/{task_name}',
     'evaluation_enabled': True, # to evaluate this task
     'image_dir' : 'out', # source "images"
@@ -35,7 +35,7 @@ cfg = {
     'learning_rate' : 1e-4,
     'learning_rate_discriminator' : 1e-4,
     'log_to_tensorboard': True,
-    'num_epochs' : 400,
+    'num_epochs' : 100,
     # 'num_epochs' : 2,
     'phases': ['training', 'validation'],
     'seed': (lambda : 42),
@@ -46,7 +46,7 @@ cfg = {
     'trainer' : 'gan',
     'training_enabled': True, # to train this task
     'transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),
-    'use_sampler': True, 
+    'use_sampler': False, 
     'validation_split': .2,
     'weight_decay': 2e-6,
     'weight_decay_discriminator': 2e-5,

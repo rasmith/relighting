@@ -34,7 +34,7 @@ cfg = {
     'lambda_pixel': 100,
     'learning_rate' : 1e-4,
     'learning_rate_discriminator' : 1e-4,
-    'log_to_tensorboard': False,
+    'log_to_tensorboard': True,
     'num_epochs' : 100,
     # 'num_epochs' : 2,
     'phases': ['training', 'validation'],
@@ -44,9 +44,9 @@ cfg = {
     'target_transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),
     'task_name': f'{task_name}',
     'trainer' : 'gan',
-    'training_enabled': False, # to train this task
+    'training_enabled': True, # to train this task
     'transform' : None,
-    'use_sampler': True, 
+    'use_sampler': False, 
     'validation_split': .2,
     'weight_decay': 2e-6,
     'weight_decay_discriminator': 2e-5,

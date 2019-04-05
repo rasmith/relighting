@@ -140,72 +140,6 @@ def perform_base_step(img, target, generator, discriminator,\
 
     return 0.0, 0.0, 0.0, loss_pixel_l2, output
 
-# def perform_step(img, target, generator, discriminator,\
-    # optimizer_generator, optimizer_discriminator,\
-    # criterion_pixel_l1, criterion_pixel_l2, criterion_gan, optimization_choice,\
-    # stats, cfg):
-    # torch.cuda.empty_cache()
-    
-    # lambda_pixel = cfg['lambda_pixel']
-    # ones = Variable(Tensor(np.ones((img.size(0), 1, 1, 1))), requires_grad=False)
-    # zeros= Variable(Tensor(np.zeros((img.size(0), 1, 1, 1))), requires_grad=False)
-    # # if stats['global_training_step'] > cfg['annealing_step']:
-      # # if not stats['annealed']:
-        # # optimizer_generator.lr /= 1.0
-        # # stats['annealed'] = True
-
-    # if cfg['device'] in 'cuda':
-      # ones = ones.cuda()
-      # zeros = zeros.cuda()
-
-    # # =============train generator===================
-    # if optimization_choice in ['base', 'gan', 'none']:
-      # optimizer_generator.zero_grad()
-
-    # output = generator(img) # prediction with generator
-
-    # loss_pixel_l1 = criterion_pixel_l1(output, target) # get pixel-wise l1 loss
-    # loss_pixel_l2 = criterion_pixel_l2(output, target) # get pixel-wise l2 loss
-
-    # fakeness = discriminator(output, img) # ask discriminator how fake this is
-    # loss_gan =  criterion_gan(fakeness, ones) # get discriminator loss
-    # loss_generator = loss_gan + lambda_pixel * loss_pixel_l1    
-
-    # if optimization_choice in ['base', 'gan']:
-      # if optimization_choice == 'base':
-        # loss_pixel_l2.backward()
-      # else:
-        # loss_generator.backward()
-      # optimizer_generator.step()
-
-    # # =============train discriminator===================
-    # if optimization_choice in ['base', 'gan', 'none']:
-      # optimizer_discriminator.zero_grad()
-
-    # # real loss
-    # realness = discriminator(target, img)
-    # loss_gan_real = criterion_gan(realness, ones)
-
-    # # fake loss
-    # fakeness = discriminator(output.detach(), img)
-    # loss_gan_fake = criterion_gan(fakeness, zeros)
-
-    # loss_discriminator = 0.5 * (loss_gan_real + loss_gan_fake)
-
-    # if optimization_choice == 'gan':
-      # loss_discriminator.backward()
-      # optimizer_discriminator.step()
-
-    # del fakeness
-    # del realness
-    # del ones
-    # del zeros
-    # del loss_gan_real
-    # del loss_gan_fake
-    # torch.cuda.empty_cache()
-
-    # return loss_generator, loss_discriminator, loss_pixel_l1, loss_pixel_l2, output
-    
 def update_stat_average(stats, value_name, step_name, value):
   step = stats[step_name]
   stats[value_name] = (stats[value_name] * step + value) / (step + 1)
@@ -336,24 +270,15 @@ class GanTrainer(object):
         epoch_start = time.time()
         for phase in self.task_cfg['phases']:
           phase_start = time.time()
-    # training_loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
-      # sampler=training_sampler, pin_memory = True)
-    # validation_loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
-      # sampler=validation_sampler, pin_memory =  True)
-          # dataloader = training_loader if phase == 'training' else validation_loader
           dataloader = DataLoader(self.task_cfg[f'{phase}_dataset'],\
                                   batch_size = batch_size, shuffle = shuffle,
                                   sampler = self.task_cfg[f'{phase}_sampler'],
                                   pin_memory = True)
           if phase == 'training':
-            # dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
-                                    # sampler=training_sampler, pin_memory = True)
             torch.enable_grad()
             generator.train()
             discriminator.train()
           else:
-            # dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
-                           # sampler=validation_sampler, pin_memory =  True)
             torch.no_grad()
             generator.eval()
             discriminator.eval()
@@ -398,22 +323,6 @@ class GanTrainer(object):
                                  criterion_pixel_l1, criterion_pixel_l2,\
                                  criterion_gan, optimization_choice, training_stats,\
                                  self.task_cfg)
-
-              # if phase == 'validation':
-                # with torch.no_grad():
-                  # loss_generator, loss_discriminator, loss_pixel_l1, loss_pixel_l2, output  =\
-                    # perform_step(img, target, generator, discriminator,\
-                                 # optimizer_generator, optimizer_discriminator,\
-                                 # criterion_pixel_l1, criterion_pixel_l2,\
-                                 # criterion_gan, optimization_choice, training_stats,\
-                                 # self.task_cfg)
-              # else:
-                # loss_generator, loss_discriminator, loss_pixel_l1, loss_pixel_l2, output  =\
-                  # perform_step(img, target, generator, discriminator,\
-                               # optimizer_generator, optimizer_discriminator,\
-                               # criterion_pixel_l1, criterion_pixel_l2,\
-                               # criterion_gan, optimization_choice, training_stats,\
-                               # self.task_cfg)
               #================update stats and progress bar===================
               update_training_stats(phase, training_stats, optimization_choice,\
                 loss_generator, loss_discriminator, loss_pixel_l1,\
@@ -453,7 +362,6 @@ class GanTrainer(object):
               best_model_state_dict = \
                 {k:v.to('cpu') for k, v in generator.state_dict().items()}
               best_model_state_dict = OrderedDict(best_model_state_dict)
-              # torch.save(model.state_dict(), f'./{weights_file}')
           sys.stdout.write("\n")
 
           epoch_end = time.time()
@@ -469,5 +377,5 @@ class GanTrainer(object):
                 self.writer.add_image(f"{self.task_cfg['task_name']}-dc", pic,\
                                       epoch, time.time())
         training_stats['epoch'] += 1
-    # print('Saving...')
+    print('Saving...')
     torch.save(best_model_state_dict, f'./{weights_file}')

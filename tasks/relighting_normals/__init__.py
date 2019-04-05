@@ -16,7 +16,7 @@ cfg = {
     'batch_size' : 8,
     'cfg_file' : 'config.cfg',
     'criterion' : nn.MSELoss(),
-    # 'data_wrapper' : (lambda x : Subset(x, range(32))),
+    'data_wrapper' : (lambda x : Subset(x, range(32))),
     'data_wrapper' : None,
     'dc_img' : f'dc_img/{task_name}',
     # 'enabled' : True,
