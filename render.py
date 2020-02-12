@@ -4,6 +4,7 @@ from threading import Thread
 from wand.image import Image
 import codecs
 import curses
+import datetime
 import graphics_math as gm
 import json
 import json
@@ -12,7 +13,6 @@ import os
 import subprocess
 import sys
 import time
-import datetime
 
 
 shader_name_to_shader_arg = {
@@ -28,9 +28,10 @@ shader_name_to_shader_arg = {
   # forward = np.array([V[2, 0:3]])
   # eye  = at - camera_distance * forward
 
-class CameraSampler(object):
+
+class Sampler(object):
   def __init__(self, eye, at, up, num_up_samples, num_right_samples,\
-               up_speed, right_speed):
+               up_speed, right_speed, sampler_type):
     self.radius = np.linalg.norm(eye - at)
     self.eye = eye
     self.up =  up
@@ -43,6 +44,7 @@ class CameraSampler(object):
                                  self.up.transpose())
     self.view_matrix = np.linalg.inv(self.lookat)
     self.total_samples = num_right_samples * num_up_samples
+    self.sampler_type = sampler_type
     self.count = 0
     print("self.view_matrix = \n%s" % (str(self.view_matrix)))
     print("self.eye = %s" % (str(self.eye)))
@@ -72,7 +74,11 @@ class CameraSampler(object):
       # print("eye = %s" % str(new_eye))
       # print("up= %s" % str(new_up))
       # print("at= %s" % str(self.at))
-      return new_eye, self.at, new_up
+      if self.sampler_type == 'camera':
+        return new_eye, self.at, new_up
+      else:
+        return new_eye
+
     else:
       raise StopIteration()
     
@@ -215,7 +221,8 @@ if __name__ == '__main__':
   at = np.array([[3.72811, 87.9981, -82.1874]], dtype = np.float) # = -vi
   up = np.array([[-0.000525674, 0.999936, 0.0113274]], dtype = np.float) # -vu
   fov = 10.1592 # - fov
-  light = eye # - pointlight
+  # light = eye # - pointlight
+  light  =  np.array([[61.4156, 102.11, -1325.25]], dtype = np.float) 
   color = np.array([[10000000, 10000000, 10000000]])
   num_threads = 8# --threads 
   isa = 'sse4.2' # --isa
@@ -248,14 +255,18 @@ if __name__ == '__main__':
   # bin_path = "/usr/bin/embree3/pathtracer"
   bin_path = "/home/agrippa/git/embree/build/pathtracer"
   samples = {}
-  camera_sampler = CameraSampler(eye, at, up, num_up_samples,\
+  camera_sampler = Sampler(eye, at, up, num_up_samples,\
                                  num_right_samples, up_rotation_speed,\
-                                 right_rotation_speed)
+                                 right_rotation_speed, 'camera')
   i = 0
   for eye, at, up in camera_sampler:
-    light  =  np.array([[61.4156, 102.11, -1325.25]], dtype = np.float) 
+    light_sampler = Sampler(light, at, up, num_up_samples,\
+                                 num_right_samples, up_rotation_speed,\
+                                 right_rotation_speed, 'light')
+    # light  =  np.array([[61.4156, 102.11, -1325.25]], dtype = np.float) 
     samples[i] = {}
-    for j in range(num_light_samples):
+    for current_light in light_sampler:
+    # for j in range(num_light_samples):
       # print("render # %d, %d" % (i, j))
       # print("V = %s" % str(V))
       # print("eye = %s" % str(eye))

@@ -6,7 +6,7 @@ class Precoder(nn.Module):
         def __init__(self, input_dims):
             super(Precoder, self).__init__()
             self.input_dims = input_dims
-            self.fc0 = nn.Linear(input_dims, 1024)
+            self.fc0 = nn.Linear(self.input_dims, 1024)
             self.fc1 = nn.Linear(1024, 4096)
             self.fc2 = nn.Linear(4096, 4096)
             self.deconv3 = nn.ConvTranspose2d(256, 512, kernel_size = (3, 3), padding = 1)
@@ -42,7 +42,7 @@ class Precoder(nn.Module):
             self.conv16 = nn.Conv2d(16, 3, kernel_size = 3, padding = 1)
             self.sig16 = nn.Sigmoid()
         def forward(self, x):
-            x = x.view(-1, 1, 1, 19)
+            x = x.view(-1, 1, 1, self.input_dims)
             x = self.fc2(self.fc1(self.fc0(x)))
             x = x.view(-1, 256, 4, 4)
             x = self.deconv3(x)

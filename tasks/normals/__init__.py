@@ -26,7 +26,7 @@ cfg = {
     'data_wrapper' : (lambda x : Subset(x, range(128))),
     'dc_img' : f'dc_img/{task_name}',
     # 'enabled' : False,
-    'enabled' : True,  # to run this task
+    'enabled' : False,  # to run this task
     'eval_dir':f'eval/{task_name}',
     'evaluation_enabled': True, # to evaluate this task
     'image_dir' : 'out', # source "images"

@@ -35,7 +35,7 @@ class ContextVectorDataset(data.Dataset):
         target_path = "%s/%s" % (self.target_dir, entry['rendering'])
         # print(f'source_path={source_path}')
         # print(f'target_path={target_path}')
-        source = torch.load(source_path)
+        source = torch.load(source_path).cpu()
         target = Image.open(target_path).convert('RGB')
         if self.source_transform is not None:
           source = self.source_transform(source)

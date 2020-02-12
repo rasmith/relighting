@@ -26,7 +26,7 @@ cfg = {
     'data_wrapper' : (lambda x : Subset(x, range(128))),
     'dc_img' : f'dc_img/{task_name}',
     # 'enabled' : False,
-    'enabled' : True,  # to run this task
+    'enabled' : False,  # to run this task
     'eval_dir':f'eval/{task_name}',
     'evaluation_enabled': True, # to evaluate this task
     'image_dir' : 'out', # source "images"
@@ -35,7 +35,7 @@ cfg = {
     'learning_rate' : 1e-4,
     'learning_rate_discriminator' : 1e-4,
     'log_to_tensorboard': True,
-    'num_epochs' : 100,
+    'num_epochs' : 200,
     # 'num_epochs' : 2,
     'phases': ['training', 'validation'],
     'seed': (lambda : 42),
@@ -67,7 +67,7 @@ class CfgLoader(object):
       self.cfg['wrapped_dataset'] = self.cfg['data_wrapper'](self.cfg['dataset'])
     else :
       self.cfg['wrapped_dataset'] = self.cfg['dataset']
-    self.cfg['encoder'] = r.PrecodedResnet18Encoder128x128()
+    self.cfg['encoder'] = r.PrecodedResnet18Encoder128x128(19)
     self.cfg['decoder'] = r.Conv11Decoder128x128()
     self.cfg['activation'] = nn.Tanh()
     self.cfg['model'] = r.EncoderDecoder(self.cfg['encoder'],\

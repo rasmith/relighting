@@ -13,7 +13,7 @@ import torch
 task_name = 'relighting_normals'
 
 cfg = {
-    'annealing_step' : 1000,
+    'annealing_step' : 2000,
     # 'batch_size' : 32,
     'batch_size' : 32,
     'base_steps' : int(128/32),
@@ -25,20 +25,20 @@ cfg = {
     'data_wrapper' : (lambda x : Subset(x, range(128))),
     'dc_img' : f'dc_img/{task_name}',
     # 'enabled' : True,
-    'enabled' : False,
+    'enabled' : True,
     'eval_dir':f'eval/{task_name}',
     'evaluation_enabled': True, # to evaluate this task
-    'image_dir' : 'sources/{task_name}', # source "images"
+    'image_dir' : f'sources/{task_name}', # source "images"
     'input_dir' : '.', # base input for all data needed
     'lambda_pixel': 100,
     'learning_rate' : 1e-4,
     'learning_rate_discriminator' : 1e-4,
     'log_to_tensorboard': True,
-    'num_epochs' : 100,
+    'num_epochs' : 16000,
     # 'num_epochs' : 2,
     'phases': ['training', 'validation'],
     'seed': (lambda : 42),
-    'shuffle': True,
+    'shuffle': False,
     'target_dir': f'out',
     'target_transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),
     'task_name': f'{task_name}',
@@ -47,7 +47,8 @@ cfg = {
     'transform' : None,
     'use_sampler': False, 
     'validation_split': .2,
-    'weight_decay': 1e-5,
+    'weight_decay': 2e-6,
+    'weight_decay_discriminator': 2e-5,
     'weights_file' : f'weights/{task_name}.pth'
 }
 
@@ -65,9 +66,13 @@ class CfgLoader(object):
       self.cfg['wrapped_dataset'] = self.cfg['data_wrapper'](self.cfg['dataset'])
     else :
       self.cfg['wrapped_dataset'] = self.cfg['dataset']
+    self.cfg['encoder'] = r.PrecodedResnet18Encoder128x128(8192)
+    self.cfg['decoder'] = r.Conv11Decoder128x128()
     self.cfg['activation'] = nn.Tanh()
-    self.cfg['model'] = r.Conv11Decoder128x128()
-    self.cfg['discriminator'] = r.Discriminator()
+    self.cfg['model'] = r.EncoderDecoder(self.cfg['encoder'],\
+                                         self.cfg['decoder'],\
+                                         self.cfg['activation'])
+    self.cfg['discriminator'] = r.PrecodedDiscriminator(8192)
     if device in 'cuda':
       self.cfg['model'] = self.cfg['model'].cuda()
       self.cfg['discriminator'] = self.cfg['discriminator'].cuda()
