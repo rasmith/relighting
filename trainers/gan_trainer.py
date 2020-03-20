@@ -44,6 +44,7 @@ def perform_validation_step(img, target, generator, discriminator,\
       loss_pixel_l1 = criterion_pixel_l1(output, target) # get pixel-wise l1 loss
       loss_pixel_l2 = criterion_pixel_l2(output, target) # get pixel-wise l2 loss
 
+      # print(f'output.shape = {output.shape} img.shape = {img.shape}')
       fakeness = discriminator(output, img) # ask discriminator how fake this is
       loss_gan =  criterion_gan(fakeness, ones) # get discriminator loss
       loss_generator = loss_gan + lambda_pixel * loss_pixel_l1    

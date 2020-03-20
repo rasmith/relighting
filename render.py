@@ -158,9 +158,9 @@ def call_embree2(data):
     outfile_png = outfile.replace("ppm", "png")
     args = [convert_bin_path, outfile, outfile_png]
     try:
-      subprocess.call(args)
+        subprocess.call(args)
     except Exception as e:
-      d["ex"]=repr(e)
+        d["ex"] = repr(e)
     # print(f'({i}, {j}) render time = {t}')
     lock.acquire()
     d["render_time"] = t
@@ -284,8 +284,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--scene", type=str, default="scenes/crown/crown.xml", dest="scene"
     )
-    parser.add_argument(
-        "--out_dir", type=str, default="out", dest="out_dir")
+    parser.add_argument("--out_dir", type=str, default="out", dest="out_dir")
     parser.add_argument("--shader", type=str, default="default", dest="shader")
     parser.add_argument(
         "--num_right_samples", type=int, default=1, dest="num_right_samples"

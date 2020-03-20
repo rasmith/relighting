@@ -42,6 +42,7 @@ class Precoder(nn.Module):
             self.conv16 = nn.Conv2d(16, 3, kernel_size = 3, padding = 1)
             self.sig16 = nn.Sigmoid()
         def forward(self, x):
+            # print(f'x.shape = {x.shape}')
             x = x.view(-1, 1, 1, self.input_dims)
             x = self.fc2(self.fc1(self.fc0(x)))
             x = x.view(-1, 256, 4, 4)

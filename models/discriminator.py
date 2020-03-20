@@ -61,7 +61,7 @@ class Discriminator(nn.Module):
       from torch.utils.checkpoint import checkpoint
     if self.inplace_bn:
       from inplace_abn.modules.bn import InPlaceABN
-    print(f"\n\nx.shape = {x.shape} y.shape = {y.shape}\n\n")
+    # print(f"\n\nx.shape = {x.shape} y.shape = {y.shape}\n\n")
     z = torch.cat((x, y), 1)
     # layer 0
     z = self.relu0(self.conv0(z))
