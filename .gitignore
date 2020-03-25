@@ -18,3 +18,5 @@ eval_img_diffuse_albedos/
 eval_img_edges/
 out/
 out_bak/
+eval/
+targets/
