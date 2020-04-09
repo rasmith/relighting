@@ -1,73 +1,58 @@
-import ctypes
 import glfw
 import sys
 import graphics_math as gm
 import numpy as np
 import traceback
-import types
+import ctypes
 from OpenGL.GL import *
 from OpenGL.arrays import ArrayDatatype
 from shader_program import *
 from glfw_controller import *
 from skimage import io
 
-
 class ImageModel(GlfwModel):
-    def __init__(self, image_source):
-        self.has_generator = isinstance(image_source, types.GeneratorType)
-        self.image_source = image_source
+    def __init__(self, image_path):
+        self.image_path = image_path
 
     def initialize(self):
-        if not self.has_generator:
-            self.image = io.imread(self.image_source)
-            self.image_byte_count = ArrayDatatype.arrayByteCount(self.image)
-        else:
-            self.image = next(self.image_source)
-
+        self.image = io.imread(self.image_path)
+        self.image_byte_count = ArrayDatatype.arrayByteCount(self.image)
 
 class ImageView(GlfwView):
     def __init__(self, fragment_shader_path, vertex_shader_path):
         self.fragment_shader_path = fragment_shader_path
         self.vertex_shader_path = vertex_shader_path
-        self.vertex_data = np.array(
-            [-1.0, -1.0, 0.0, 1.0, -1.0, 0.0, 1.0, 1.0, 0.0, -1.0, 1.0, 0.0]
-        ).astype(dtype=np.float32, order="C")
+        self.vertex_data = np.array([
+          -1.0, -1.0, 0.0,
+          1.0, -1.0, 0.0,
+          1.0, 1.0, 0.0,
+          -1.0, 1.0, 0.0
+          ]).astype(dtype=np.float32, order='C')
         self.vertex_byte_count = ArrayDatatype.arrayByteCount(self.vertex_data)
-        self.index_data = np.array([0, 1, 2, 0, 2, 3]).astype(
-            dtype=np.uint32, order="C"
-        )
+        self.index_data = np.array([
+          0, 1, 2, 0, 2, 3
+          ]).astype(dtype=np.uint32, order='C')
         self.index_byte_count = ArrayDatatype.arrayByteCount(self.index_data)
-        self.texture_data = np.array(
-            [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0]
-        ).astype(dtype=np.float32, order="C")
-        self.texture_byte_count = ArrayDatatype.arrayByteCount(
-            self.texture_data
-        )
-        self.image_storage_initialized = False
+        self.texture_data = np.array([
+          0.0, 0.0,
+          1.0, 0.0, 
+          1.0, 1.0,
+          0.0, 1.0
+          ]).astype(dtype=np.float32, order='C')
+        self.texture_byte_count = ArrayDatatype.arrayByteCount(self.texture_data)
+        self.image_loaded = False
 
     def update_vbos(self):
         glBindVertexArray(self.vao_id)
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo_id[0])
-        glBufferData(
-            GL_ARRAY_BUFFER,
-            self.vertex_byte_count,
-            self.vertex_data,
-            GL_STATIC_DRAW,
-        )
+        glBufferData(GL_ARRAY_BUFFER, self.vertex_byte_count,
+                     self.vertex_data, GL_STATIC_DRAW)
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo_id[1])
-        glBufferData(
-            GL_ARRAY_BUFFER,
-            self.texture_byte_count,
-            self.texture_data,
-            GL_STATIC_DRAW,
-        )
+        glBufferData(GL_ARRAY_BUFFER, self.texture_byte_count,
+                     self.texture_data, GL_STATIC_DRAW)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.vbo_id[2])
-        glBufferData(
-            GL_ELEMENT_ARRAY_BUFFER,
-            self.index_byte_count,
-            self.index_data,
-            GL_STATIC_DRAW,
-        )
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,  self.index_byte_count,
+                     self.index_data, GL_STATIC_DRAW)
 
     def set_hints(self):
         glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
@@ -77,17 +62,17 @@ class ImageView(GlfwView):
 
     def initialize(self):
         # Load shaders.
-        self.fragment = open(self.fragment_shader_path, "r").read()
-        self.vertex = open(self.vertex_shader_path, "r").read()
+        self.fragment = open(self.fragment_shader_path, 'r').read()
+        self.vertex = open(self.vertex_shader_path, 'r').read()
 
         # Compile shaders and link program.
-        self.program = ShaderProgram(fragment=self.fragment, vertex=self.vertex)
+        self.program = ShaderProgram(
+            fragment=self.fragment, vertex=self.vertex)
 
         glUseProgram(self.program.program_id)
 
         fragment_color_location = glGetFragDataLocation(
-            self.program.program_id, "fragment_color"
-        )
+            self.program.program_id, "fragment_color")
 
         # Generate VAOs.
         self.vao_id = glGenVertexArrays(1)
@@ -101,37 +86,32 @@ class ImageView(GlfwView):
 
         # Generate sampler.
         self.sampler_id = glGenSamplers(1)
-        # glSamplerParameteri(self.sampler_id, GL_TEXTURE_WRAP_S, GL_REPEAT)
-        # glSamplerParameteri(self.sampler_id, GL_TEXTURE_WRAP_T, GL_REPEAT)
-        glSamplerParameteri(self.sampler_id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
-        glSamplerParameteri(self.sampler_id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+        glSamplerParameteri(self.sampler_id, GL_TEXTURE_WRAP_S, GL_REPEAT)
+        glSamplerParameteri(self.sampler_id, GL_TEXTURE_WRAP_T, GL_REPEAT)
         glSamplerParameteri(self.sampler_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glSamplerParameteri(self.sampler_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
 
+
         # Setup the vertex data in VBO.
         self.vertex_location = self.program.attribute_location(
-            "vertex_position"
-        )
+            'vertex_position')
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo_id[0])
-        glVertexAttribPointer(
-            self.vertex_location, 3, GL_FLOAT, GL_FALSE, 0, None
-        )
+        glVertexAttribPointer(self.vertex_location, 3,
+                              GL_FLOAT, GL_FALSE, 0, None)
         glEnableVertexAttribArray(self.vertex_location)
         # Setup the texture data in VBO.
         self.texture_location = self.program.attribute_location(
-            "texture_coordinate"
-        )
+            'texture_coordinate')
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo_id[1])
-        glVertexAttribPointer(
-            self.texture_location, 2, GL_FLOAT, GL_FALSE, 0, None
-        )
+        glVertexAttribPointer(self.texture_location, 2,
+                              GL_FLOAT, GL_FALSE, 0, None)
         glEnableVertexAttribArray(self.texture_location)
 
         self.texture_sampler_location = self.program.uniform_location(
-            "texture_sampler"
-        )
+            'texture_sampler')
 
         self.update_vbos()
+
 
     def render(self, width, height):
         glViewport(0, 0, width, height)
@@ -143,8 +123,6 @@ class ImageView(GlfwView):
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glDepthFunc(GL_LESS)
-        glPixelStorei(GL_PACK_ALIGNMENT, 4)
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 4)
 
         aspect = float(width) / float(height)
 
@@ -152,41 +130,20 @@ class ImageView(GlfwView):
         glUseProgram(self.program.program_id)
 
         # Activate texture unit.
-        glActiveTexture(GL_TEXTURE0)
+        glActiveTexture(GL_TEXTURE0);
 
         # Bind to texture.
         glBindTexture(GL_TEXTURE_2D, self.texture_id)
 
-        pack_alignment = glGetInteger(GL_PACK_ALIGNMENT)
-        unpack_alignment = glGetInteger(GL_UNPACK_ALIGNMENT)
-        if not self.image_storage_initialized or self.model.has_generator:
-            if self.model.has_generator:
-                try:
-                    self.model.image = next(self.model.image_source)
-                except:
-                    self.model.image = self.model.last
-                else:
-                    self.model.last = self.model.image
-            image_height, image_width, image_channels = self.model.image.shape
-            if not self.image_storage_initialized:
-                glTexStorage2D(
-                    GL_TEXTURE_2D, 1, GL_RGBA8, image_width, image_height
-                )
-            glTexSubImage2D(
-                GL_TEXTURE_2D,
-                0,
-                0,
-                0,
-                image_width,
-                image_height,
-                GL_RGBA,
-                GL_UNSIGNED_BYTE,
-                self.model.image,
-            )
-            self.image_storage_initialized = True
+        image_width, image_height, image_channels = self.model.image.shape
+        if not self.image_loaded:
+            glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB8, image_width, image_height)
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image_width, image_height,
+                            GL_RGB, GL_UNSIGNED_BYTE, self.model.image)
+            self.image_loaded = True
 
         # Set sampler unit.
-        glUniform1i(self.texture_sampler_location, 0)
+        glUniform1i(self.texture_sampler_location, 0);
 
         # Bind to sampler.
         glBindSampler(0, self.sampler_id)
