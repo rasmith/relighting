@@ -312,6 +312,8 @@ if __name__ == "__main__":
     print(args.num_up_samples)
     print(args.num_right_light_samples)
     print(args.num_up_light_samples)
+    import pdb
+    pdb.set_trace()
 
     file_name = "crown.xml"  # -i
     size = np.array([[128, 128]], dtype=np.int)  # -size

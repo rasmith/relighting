@@ -19,7 +19,7 @@ def normalize_numpy_array(values):
     return normalized_values
 
 
-class CameraLightDataset(data.Dataset):
+class CameraDataset(data.Dataset):
     def __init__(self, target_dir, task_name, transform = None, target_transform = None):
         self.target_dir = target_dir
         self.task_name = task_name
@@ -57,7 +57,7 @@ class CameraLightDataset(data.Dataset):
 
     def __getitem__(self, idx):
         pose = np.reshape(self.poses[idx][1], (1, len(self.poses[idx][1]))).astype(np.float32) 
-        pose = torch.from_numpy(pose).view(1, 1, 10)
+        pose = torch.from_numpy(pose).view(1, 1, 7)
         image = self.frames[idx]
         if self.transform is not None:
             pose = self.transform(pose)

@@ -22,3 +22,4 @@ eval/
 targets/
 tensorboard/
 targets/
+.ipynb_checkpoints/

@@ -71,6 +71,7 @@ class Evaluator(object):
       os.makedirs(eval_dir)
     for i, img_number in enumerate(self.task_cfg[f'{sampler_type}_indices']):
       value, target = dataset[img_number]
+      print(f'value.shape = {value.shape}')
       value = value.view(1, *value.shape)
       target = target.view(1, *target.shape)
       value = Variable(value).cuda() if self.use_cuda else  Variable(value).cpu()
