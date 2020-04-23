@@ -17,21 +17,31 @@ from point_cloud_view import PointCloudView
 from point_cloud_view import PointModel
 from video_capture import VideoCapture
 
+from tasks.camera_to_image import CfgLoader
+
 def read_poses(pose_file):
     lines = open(pose_file).read().splitlines()
     poses = [[float(z) for z in x.split()[1:]] for x in lines]
 
     return poses
 
-frames = VideoCapture('targets/camera_light_to_image/movie.mov')
-poses = read_poses('targets/camera_light_to_image/poses.txt')
+weights_file = 'weights/camera_to_image.pth'
+cfg = CfgLoader().get_cfg("cpu")
+model = cfg['model']
+model.load_state_dict(torch.load(f'./{weights_file}'))
+
+value = 
+value = Variable(value).cpu() 
+
+frames = VideoCapture('targets/camera_to_image/movie.mov')
+poses = read_poses('targets/camera_to_image/poses.txt')
 poses = np.array(poses)
 
 translations = np.zeros((poses.shape[0], 4))
 translations[:, 0:3] = poses[:, 0:3]
 translations[:, 3] = 1
 quaternions = poses[:, 3:7]
-lights = poses[:, 7:]
+# lights = poses[:, 7:]
 vertices = translations[:, 0:3]
 
 points = translations.T
@@ -57,6 +67,7 @@ xpos, ypos, title = 0, 0, "Camera"
 point_fragment_shader = "point_fragment.glsl"
 point_vertex_shader = "point_vertex.glsl"
 # model = MeshModel("bunny.obj")
+vertices = np.concatenate((vertices, np.array([vertices[0, :]])))
 model = PointModel(vertices)
 view = PointCloudView(point_fragment_shader, point_vertex_shader)
 eye = [0.0, 0.0, 2.0, 1.0]
@@ -80,5 +91,3 @@ image_controller = GlfwController(400, 300, 500, 100, "Image View", image_view, 
 multi_controller.add(image_controller)
 
 multi_controller.run()
-
-

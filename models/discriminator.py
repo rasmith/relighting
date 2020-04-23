@@ -20,7 +20,7 @@ class Discriminator(nn.Module):
     # layer 1
     self.conv1 = nn.Conv2d(64, 128, kernel_size = 4, stride = 2, padding = 1)
     if self.inplace_bn:
-      self.abn1 = InPlaceABN(128, activation = 'leakyrelu', slope = 0.2)
+      self.abn1 = InPlaceABN(128, activation = 'leaky_relu', activation_param = 0.2)
     else:
       self.bn1 = nn.BatchNorm2d(128)
       self.relu1 = nn.LeakyReLU(0.2, inplace=True)
@@ -28,14 +28,14 @@ class Discriminator(nn.Module):
     # layer 2
     self.conv2 = nn.Conv2d(128,256, kernel_size = 4, stride = 2, padding = 1)
     if self.inplace_bn:
-      self.abn2 = InPlaceABN(256, activation = 'leakyrelu', slope = 0.2)
+      self.abn2 = InPlaceABN(256, activation = 'leaky_relu', activation_param = 0.2)
     else:
       self.bn2 = nn.BatchNorm2d(256)
       self.relu2 = nn.LeakyReLU(0.2, inplace=True)
     # layer 3
     self.conv3 = nn.Conv2d(256,512, kernel_size = 4, stride = 2, padding = 1)
     if self.inplace_bn:
-      self.abn3 = InPlaceABN(512, activation = 'leakyrelu', slope = 0.2)
+      self.abn3 = InPlaceABN(512, activation = 'leaky_relu', activation_param = 0.2)
     else:
       self.bn3 = nn.BatchNorm2d(512)
       self.relu3 = nn.LeakyReLU(0.2, inplace=True)
@@ -44,7 +44,7 @@ class Discriminator(nn.Module):
     self.pad4 = nn.ZeroPad2d((1,0,1,0))
     self.conv4 =  nn.Conv2d(512, 512, 4, padding=1)
     if self.inplace_bn:
-      self.abn4 = InPlaceABN(512, activation = 'leakyrelu', slope = 0.2)
+      self.abn4 = InPlaceABN(512, activation = 'leaky_relu', activation_param = 0.2)
     else:
       self.bn4 = nn.BatchNorm2d(512)
       self.relu4 = nn.LeakyReLU(0.2, inplace=True)
