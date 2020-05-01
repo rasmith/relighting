@@ -7,7 +7,6 @@ import igl
 import traceback
 from OpenGL.GL import *
 from OpenGL.arrays import ArrayDatatype
-from iglhelpers import *
 from shader_program import *
 from glfw_controller import *
 import pdb
