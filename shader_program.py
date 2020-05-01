@@ -14,6 +14,8 @@ class ShaderProgram(object):
     if geometry is not None:
         glAttachShader(self.program_id, geom_id)
     glLinkProgram(self.program_id)
+    info = glGetProgramInfoLog(self.program_id)
+    print(f"InfoLog = {info}")
 
     if glGetProgramiv(self.program_id, GL_LINK_STATUS) != GL_TRUE:
       info = glGetProgramInfoLog(self.program_id)
@@ -30,14 +32,20 @@ class ShaderProgram(object):
       glCompileShader(shader_id)
       if glGetShaderiv(shader_id, GL_COMPILE_STATUS) != GL_TRUE:
         info = glGetShaderInfoLog(shader_id)
-        raise RuntimeError('Shader compilation failed: %s' % (info))
+        raise RuntimeError('Shader compilation failed: %s\nsource=%s' % (info, source))
       return shader_id
     except:
       glDeleteShader(shader_id)
       raise
 
   def uniform_location(self, name):
-    return glGetUniformLocation(self.program_id, name)
+    location = glGetUniformLocation(self.program_id, name)
+    if location < 0:
+        raise RuntimeError(f"Bad uniform location name = '{name}' location = {location}\n")
+    return location
 
   def attribute_location(self, name):
-    return glGetAttribLocation(self.program_id, name)
+    location = glGetAttribLocation(self.program_id, name)
+    if location < 0:
+        raise RuntimeError(f"Bad attribute location name = '{name}' location = {location}\n")
+    return location

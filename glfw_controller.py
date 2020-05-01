@@ -51,6 +51,8 @@ class GlfwController(object):
         self.initialized = False
         self.xpos = xpos
         self.ypos = ypos
+        self.user_callbacks = []
+        self.callbacks = []
 
     def open(self):
         self.view.set_hints()
@@ -68,8 +70,9 @@ class GlfwController(object):
                               self.key_callback(key, scancode, action, mods))
         glfw.swap_interval(1)
         glfw.set_window_title(self.window, self.title)
-        self.callbacks = []
         self.register_key_callback(self)
+        for c in self.user_callbacks:
+            self.register_key_callback(c)
 
 
     def key_handler(self, key, scancode, action, mods):
@@ -82,6 +85,9 @@ class GlfwController(object):
 
     def register_key_callback(self, callback):
         self.callbacks.append(callback)
+
+    def register_user_key_callback(self, callback):
+        self.user_callbacks.append(callback)
 
     def initialize(self):
         if self.initialized:

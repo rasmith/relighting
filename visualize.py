@@ -1,4 +1,5 @@
 import cv2
+import glfw
 import importlib
 import numpy as np
 import pkgutil
@@ -10,16 +11,17 @@ import igl
 from evaluator import Evaluator
 from glfw_controller import *
 from image_view import *
-from mesh_view import MeshModel
-from mesh_view import MeshView
+from mesh_view import MultiMeshModel
+from mesh_view import MultiMeshView
 from multiprocessing import Process
-from point_cloud_view import PointCloudView
-from point_cloud_view import PointModel
 from video_capture import VideoCapture
 from torch.autograd import Variable
 
 from tasks.camera_to_image import CfgLoader
 
+import graphics_math as gm
+
+    
 def load_mesh(mesh_file):
     pass
 
@@ -121,17 +123,71 @@ point_fragment_shader = "point_fragment.glsl"
 point_vertex_shader = "point_vertex.glsl"
 
 vertices = np.concatenate((vertices, np.array([vertices[0, :]])))
-point_model = PointModel(vertices)
-point_view = PointCloudView(point_fragment_shader, point_vertex_shader)
+big_point = np.array([[0,0,0]])
+multi_mesh_model = MultiMeshModel(
+    [
+        {
+            "name": "bounding_sphere",
+            "type": "mesh",
+            "mesh": "sphere.obj",
+            "fragment": "wireframe_fragment.glsl",
+            "vertex": "wireframe_vertex.glsl",
+            "geometry": "wireframe_geometry.glsl",
+            "color" : np.array([1.0, 1.0, 1.0])
+        },
+        {
+            "name": "points",
+            "type": "points",
+            "mesh": vertices,
+            "fragment": "point_fragment.glsl",
+            "vertex" : "point_vertex.glsl",
+            "geometry": None,
+            "color" : np.array([1.0, 0.0, 0.0])
+        },
+        {
+            "name": "walking_sphere",
+            "type": "mesh",
+            "mesh": "sphere.obj",
+            "model_matrix": gm.uniform_scale(0.10),
+            "fragment": "mesh_fragment.glsl",
+            "vertex": "mesh_vertex.glsl",
+            "geometry" : None,
+            "color": np.array([0.0, 1.0, 0.0])
+        },
+    ]
+)
+class KeyCallbackHandler:
+    def __init__(self, data):
+        self.data = data
+    def key_handler(self, key, scancode, action, mods):
+        m = self.data.name_to_mesh_info["walking_sphere"]["model_matrix"]
+        if key == glfw.KEY_W and action == glfw.PRESS:
+            m = gm.translate(0, 0, 0.025).dot(m)
+        elif key == glfw.KEY_A and action == glfw.PRESS:
+            m = gm.translate(0.025, 0, 0).dot(m)
+        elif key == glfw.KEY_S and action == glfw.PRESS:
+            m = gm.translate(0, 0, -0.025).dot(m)
+        elif key == glfw.KEY_D and action == glfw.PRESS:
+            m = gm.translate(-0.025, 0, 0.0).dot(m)
+        elif key == glfw.KEY_UP and action == glfw.PRESS:
+            m = gm.translate(0, 0.025, 0.0).dot(m)
+        elif key == glfw.KEY_DOWN and action == glfw.PRESS:
+            m = gm.translate(0, -0.025, 0.0).dot(m)
+        self.data.name_to_mesh_info["walking_sphere"]["model_matrix"] = m
+
+multi_mesh_view = MultiMeshView()
 eye = [0.0, 0.0, 2.0, 1.0]
 at = [0.0, 0.0, 0.0, 1.0]
 up = [0.0, 1.0, 0.0, 1.0]
 fov = 45.0
 near = 0.0001
 far = 100
-point_view.set_camera(eye, at, up, fov, near, far)
+light_position = [0.0, 0.0, 4.0]
+multi_mesh_view.set_camera(eye, at, up, fov, near, far)
+multi_mesh_view.set_light_position(light_position)
 
-mesh_controller = GlfwController(width, height, xpos, ypos, title, point_view, point_model)
+mesh_controller = GlfwController(width, height, xpos, ypos, title, multi_mesh_view, multi_mesh_model)
+mesh_controller.register_user_key_callback(KeyCallbackHandler(multi_mesh_model))
 multi_controller.add(mesh_controller)
 
 image_fragment_shader = "image_fragment.glsl"

@@ -3,21 +3,41 @@ from glfw_controller import *
 from mesh_view import *
 from image_view import *
 
+import numpy as np
+
+def read_poses(pose_file):
+    lines = open(pose_file).read().splitlines()
+    poses = [[float(z) for z in x.split()[1:]] for x in lines]
+    poses = np.array(poses)
+    translations = np.zeros((poses.shape[0], 4))
+    translations[:, 0:3] = poses[:, 0:3]
+    translations[:, 3] = 1
+    vertices = translations[:, 0:3]
+    vertices = np.concatenate((vertices, np.array([vertices[0, :]])))
+    return vertices 
+
+poses_file = 'targets/camera_to_image/poses.txt'
+
 app = GlfwApp()
 app.init()
 
 multi_controller = GlfwMultiController()
 
-mesh_path = "bunny.off"
-mesh_fragment_shader = "mesh_fragment.glsl"
-mesh_vertex_shader = "mesh_vertex.glsl"
 
 model = MultiMeshModel(
     [
         {
-            "mesh": "bunny.off",
-            "fragment": "mesh_fragment.glsl",
-            "vertex": "mesh_vertex.glsl",
+            "type": "mesh",
+            "mesh": "sphere.obj",
+            "fragment": "wireframe_fragment.glsl",
+            "vertex": "wireframe_vertex.glsl",
+            "geometry": "wireframe_geometry.glsl"
+        },
+        {
+            "type":"points",
+            "mesh": read_poses(f'./{poses_file}'),
+            "fragment": "point_fragment.glsl",
+            "vertex" : "point_vertex.glsl",
             "geometry": None,
         }
     ]
