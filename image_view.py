@@ -10,12 +10,18 @@ from shader_program import *
 from glfw_controller import *
 from skimage import io
 
+
 class ImageModel(GlfwModel):
-    def __init__(self, image_path):
-        self.image_path = image_path
+    def __init__(self, provider):
+        self.provider_type = type(provider)
+        self.provider = provider
 
     def initialize(self):
-        self.image = io.imread(self.image_path)
+        if self.provider_type is str:
+            self.image_path = provider
+            self.image = io.imread(self.image_path)
+        elif self.provider_type is np.ndarray:
+            self.image = self.provider
         self.image_byte_count = ArrayDatatype.arrayByteCount(self.image)
 
 class ImageView(GlfwView):
@@ -112,6 +118,10 @@ class ImageView(GlfwView):
 
         self.update_vbos()
 
+    def key_callback(self, key, scancode, action, mods):
+        super().key_callback(key, scancode, action, mods)
+        if key == glfw.KEY_LEFT:
+            print('left')
 
     def render(self, width, height):
         glViewport(0, 0, width, height)

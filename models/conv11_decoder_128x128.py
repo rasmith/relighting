@@ -1,12 +1,12 @@
 import torch
 import torch.nn as nn
-import models.resnet_abn as r
+# import models.resnet_abn as r
 # from inplace_abn.modules.bn import InPlaceABN
-from inplace_abn import InPlaceABN
+# from inplace_abn import InPlaceABN
 
 class Conv11Decoder128x128(nn.Module):
 
-  def __init__(self, activation = None, use_inplace_bn = True,\
+  def __init__(self, activation = None, use_inplace_bn = False,\
               use_dropout = False, use_checkpointed_bn = True):
     super(Conv11Decoder128x128, self).__init__()
     self.input_width  = 4

@@ -1,11 +1,11 @@
 import torch
 import torch.nn as nn
 # from inplace_abn.modules.bn import InPlaceABN
-from inplace_abn import InPlaceABN
+# from inplace_abn import InPlaceABN
 import models.precoder as p
 
 class PrecodedDiscriminator(nn.Module):
-  def __init__(self, precoder_size, inplace_bn = True):
+  def __init__(self, precoder_size, inplace_bn = False):
     super(PrecodedDiscriminator, self).__init__()
     self.precoder_size = precoder_size
     self.precoder = p.Precoder(self.precoder_size)

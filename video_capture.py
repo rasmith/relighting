@@ -35,6 +35,9 @@ class VideoCapture:
             output = frame
         return output
 
+    def __get__(self, idx):
+        return self.frames[idx]
+
     def extents(self):
         if 'extents' not in self.cache:
             self.cache['extents'] = (

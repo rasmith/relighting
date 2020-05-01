@@ -16,18 +16,18 @@ task_name = 'camera_light_to_image'
 cfg = {
     'annealing_step' : 1000,
     # 'batch_size' : 32,
-    'batch_size' : 32,
-    'base_steps' : int(256/32),
+    'batch_size' : 8,
+    'base_steps' : int(32/8),
     'cfg_file' : 'config.cfg',
     'criterion' : nn.MSELoss(),
     'criterion_gan': nn.MSELoss(),
     'criterion_pixel_l1': nn.L1Loss(),
     # 'data_wrapper' : None,
-    'data_wrapper' : (lambda x : Subset(x, range(256))),
+    'data_wrapper' : (lambda x : Subset(x, range(32))),
     # 'data_wrapper' : None,
     'dc_img' : f'dc_img/{task_name}',
     # 'enabled' : False,
-    'enabled' : False,  # to run this task
+    'enabled' : True,  # to run this task
     'eval_dir':f'eval/{task_name}',
     'evaluation_enabled': True, # to evaluate this task
     'image_dir' : 'out', # source "images"
@@ -35,9 +35,9 @@ cfg = {
     'lambda_pixel': 100,
     'learning_rate' : 1e-4,
     'learning_rate_discriminator' : 1e-4,
-    'log_to_tensorboard': True,
+    'log_to_tensorboard': False,
     # 'num_epochs' : 200,
-    'num_epochs' : 6000,
+    'num_epochs' : 10,
     # 'num_epochs' : 16000,
     'phases': ['training', 'validation'],
     'seed': (lambda : 42),

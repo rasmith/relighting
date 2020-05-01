@@ -68,10 +68,20 @@ class GlfwController(object):
                               self.key_callback(key, scancode, action, mods))
         glfw.swap_interval(1)
         glfw.set_window_title(self.window, self.title)
+        self.callbacks = []
+        self.register_key_callback(self)
 
-    def key_callback(self, key, scancode, action, mods):
+
+    def key_handler(self, key, scancode, action, mods):
         if key == glfw.KEY_ESCAPE and action == glfw.PRESS:
             glfw.set_window_should_close(self.window, True)
+
+    def key_callback(self, key, scancode, action, mods):
+        for obj in self.callbacks:
+            obj.key_handler(key, scancode, action, mods)
+
+    def register_key_callback(self, callback):
+        self.callbacks.append(callback)
 
     def initialize(self):
         if self.initialized:
