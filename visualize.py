@@ -82,11 +82,11 @@ def update_axes(which, angle, orientation):
     return orientation
 
 
-load_configuration = False
-load_model = False
-load_weights = False
-load_frames = False
-load_poses = True
+load_configuration = True
+load_model = True 
+load_weights = True 
+load_frames = True 
+load_poses = True 
 if load_configuration:
     print(f"Loading configuration ...")
     cfg = CfgLoader().get_cfg("cpu")
@@ -209,7 +209,6 @@ class KeyCallbackHandler:
         # import pdb
         # pdb.set_trace()
         M = gm.rotate(angle, axis)
-        print(f"axis = {axis}, rotation = {M}")
         obj["R"] = gm.rotate(angle, axis).dot(R)
 
     def update_translation(self, name, tx, ty, tz):
