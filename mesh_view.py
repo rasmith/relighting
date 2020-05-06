@@ -14,21 +14,18 @@ import pdb
 
 
 class PointModel(GlfwModel):
-    def __init__(self, points):
+    def __init__(self, points, normalize=False):
         self.vertices = points.astype(dtype=np.float32, order="C")
+        self.normalize = normalize
 
     def initialize(self):
         self.num_vertices = self.vertices.shape[0]
-        self.center = np.mean(self.vertices, axis=0)
-        self.max_vals = np.max(self.vertices, axis=0)
-        self.min_vals = np.min(self.vertices, axis=0)
-        self.extents = self.max_vals - self.min_vals
-        print(
-            "min = %s, max = %s, extents = %s, center = %s"
-            % (self.min_vals, self.max_vals, self.extents, self.center)
-        )
-
-        self.vertices = (self.vertices - self.center) / self.extents
+        if self.normalize:
+            self.center = np.mean(self.vertices, axis=0)
+            self.max_vals = np.max(self.vertices, axis=0)
+            self.min_vals = np.min(self.vertices, axis=0)
+            self.extents = self.max_vals - self.min_vals
+            self.vertices = (self.vertices - self.center) / self.extents
         self.vertex_byte_count = ArrayDatatype.arrayByteCount(self.vertices)
         self.faces = []
         for i in range(self.vertices.shape[0]):
@@ -37,9 +34,36 @@ class PointModel(GlfwModel):
         self.face_byte_count = ArrayDatatype.arrayByteCount(self.faces)
         self.num_faces = self.vertices.shape[0]
 
+
+class LineModel(GlfwModel):
+    def __init__(self, line_info, normalize=False):
+        vertices, lines, colors = line_info
+        self.vertices = vertices.astype(dtype=np.float32, order="C")
+        self.faces = lines.astype(dtype=np.uint32, order="C")
+        self.vertex_colors = colors.astype(dtype=np.float32, order="C")
+        self.normalize = normalize
+
+    def initialize(self):
+        self.num_vertices = self.vertices.shape[0]
+        self.num_faces = self.faces.shape[0]
+        if self.normalize:
+            self.center = np.mean(self.vertices, axis=0)
+            self.max_vals = np.max(self.vertices, axis=0)
+            self.min_vals = np.min(self.vertices, axis=0)
+            self.extents = self.max_vals - self.min_vals
+            self.vertices = (self.vertices - self.center) / self.extents
+        self.vertex_byte_count = ArrayDatatype.arrayByteCount(self.vertices)
+        self.faces = np.array(self.faces).astype(dtype=np.uint32, order="C")
+        self.face_byte_count = ArrayDatatype.arrayByteCount(self.faces)
+        self.vertex_color_byte_count = ArrayDatatype.arrayByteCount(
+            self.vertex_colors
+        )
+
+
 class MeshModel(GlfwModel):
-    def __init__(self, mesh_path):
+    def __init__(self, mesh_path, normalize=False):
         self.mesh_path = mesh_path
+        self.normalize = normalize
 
     def initialize(self):
 
@@ -65,33 +89,32 @@ class MeshModel(GlfwModel):
 
         self.num_faces = self.faces.shape[0]
         self.num_vertices = self.vertices.shape[0]
-        self.center = np.mean(self.vertices, axis=0)
-        self.max_vals = np.max(self.vertices, axis=0)
-        self.min_vals = np.min(self.vertices, axis=0)
-        self.extents = self.max_vals - self.min_vals
-        print(
-            "min = %s, max = %s, extents = %s, center = %s"
-            % (self.min_vals, self.max_vals, self.extents, self.center)
-        )
 
-        self.vertices = (self.vertices - self.center) / self.extents
+        if self.normalize:
+            self.center = np.mean(self.vertices, axis=0)
+            self.max_vals = np.max(self.vertices, axis=0)
+            self.min_vals = np.min(self.vertices, axis=0)
+            self.extents = self.max_vals - self.min_vals
+            self.vertices = (self.vertices - self.center) / self.extents
+
         self.vertex_byte_count = ArrayDatatype.arrayByteCount(self.vertices)
         self.vertex_normal_byte_count = ArrayDatatype.arrayByteCount(
             self.vertex_normals
         )
         self.face_byte_count = ArrayDatatype.arrayByteCount(self.faces)
 
+
 class MultiMeshModel(GlfwModel):
     def __init__(self, infos):
         self.mesh_infos = [MeshInfo(info) for info in infos]
-        self.name_to_mesh_info = {i["name"]:i for i in infos}
+        self.name_to_mesh_info = {i["name"]: i for i in infos}
 
     def initialize(self):
         for m in self.mesh_infos:
             m.initialize()
             m.model.initialize()
 
-            
+
 class MeshInfo:
     def __init__(self, info):
         self.program_info = info
@@ -99,26 +122,37 @@ class MeshInfo:
             self.model = MeshModel(info["mesh"])
         if info["type"] == "points":
             self.model = PointModel(info["mesh"])
+        if info["type"] == "lines":
+            self.model = LineModel(info["mesh"])
 
     def initialize(self):
         self.model.initialize()
         if isinstance(self.model, MeshModel):
             self.render_type = GL_TRIANGLES
-            self.num_elements = self.model.num_faces * 3
         if isinstance(self.model, PointModel):
             self.render_type = GL_POINTS
-            self.num_elements = self.model.num_faces * 3
+        if isinstance(self.model, LineModel):
+            self.render_type = GL_LINES
+        self.num_elements = self.model.num_faces * 3
 
     @property
     def model_matrix(self):
-        if "model_matrix" in self.program_info:
-            return self.program_info["model_matrix"]
+        if "M" in self.program_info:
+            return self.program_info["M"]
         return np.eye(4)
 
     @property
     def color(self):
-        return  self.program_info["color"]
-        
+        return self.program_info["color"]
+
+    @property
+    def opacity(self):
+        return (
+            self.program_info["opacity"]
+            if "opacity" in self.program_info
+            else 1.0
+        )
+
     def update_vbos(self):
         glBindVertexArray(self.vao_id)
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo_id[0])
@@ -141,6 +175,14 @@ class MeshInfo:
                 GL_ARRAY_BUFFER,
                 self.model.vertex_normal_byte_count,
                 self.model.vertex_normals,
+                GL_STATIC_DRAW,
+            )
+        if isinstance(self.model, LineModel):
+            glBindBuffer(GL_ARRAY_BUFFER, self.vbo_id[3])
+            glBufferData(
+                GL_ARRAY_BUFFER,
+                self.model.vertex_color_byte_count,
+                self.model.vertex_colors,
                 GL_STATIC_DRAW,
             )
 
@@ -199,7 +241,7 @@ class MultiMeshView(GlfwView):
             glBindVertexArray(mesh_info.vao_id)
 
             # Generate VBOs.
-            mesh_info.vbo_id = glGenBuffers(3)
+            mesh_info.vbo_id = glGenBuffers(4)
 
             # Setup the vertex data in VBO.
             mesh_info.vertex_location = mesh_info.program.attribute_location(
@@ -218,9 +260,29 @@ class MultiMeshView(GlfwView):
                 )
                 glBindBuffer(GL_ARRAY_BUFFER, mesh_info.vbo_id[2])
                 glVertexAttribPointer(
-                    mesh_info.vertex_normal_location, 3, GL_FLOAT, GL_FALSE, 0, None
+                    mesh_info.vertex_normal_location,
+                    3,
+                    GL_FLOAT,
+                    GL_FALSE,
+                    0,
+                    None,
                 )
                 glEnableVertexAttribArray(mesh_info.vertex_normal_location)
+
+            if isinstance(mesh_info.model, LineModel):
+                mesh_info.vertex_color_location = mesh_info.program.attribute_location(
+                    "vertex_color"
+                )
+                glBindBuffer(GL_ARRAY_BUFFER, mesh_info.vbo_id[3])
+                glVertexAttribPointer(
+                    mesh_info.vertex_color_location,
+                    3,
+                    GL_FLOAT,
+                    GL_FALSE,
+                    0,
+                    None,
+                )
+                glEnableVertexAttribArray(mesh_info.vertex_color_location)
 
             # Setup the indices data VBO.
             mesh_info.model_location = mesh_info.program.uniform_location(
@@ -232,6 +294,9 @@ class MultiMeshView(GlfwView):
             )
             mesh_info.color_location = mesh_info.program.uniform_location(
                 "color"
+            )
+            mesh_info.opacity_location = mesh_info.program.uniform_location(
+                "opacity"
             )
             if isinstance(mesh_info.model, MeshModel):
                 mesh_info.light_position_location = mesh_info.program.uniform_location(
@@ -277,16 +342,14 @@ class MultiMeshView(GlfwView):
             )
             color_py = mesh_info.color.tolist()
             glUniform3fv(
-                mesh_info.color_location,
-                1,
-                (GLfloat * 3)(*color_py),
+                mesh_info.color_location, 1, (GLfloat * 3)(*color_py),
             )
             color_py = mesh_info.color.tolist()
             glUniform3fv(
-                mesh_info.color_location,
-                1,
-                (GLfloat * 3)(*color_py),
+                mesh_info.color_location, 1, (GLfloat * 3)(*color_py),
             )
+            opacity_py = np.float32(mesh_info.opacity)
+            glUniform1f(mesh_info.opacity_location, opacity_py)
             if isinstance(mesh_info.model, MeshModel):
                 light_position_py = self.light_position.tolist()
                 glUniform3fv(
@@ -311,4 +374,5 @@ class MultiMeshView(GlfwView):
         glEnable(GL_DEPTH_TEST)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glDepthFunc(GL_LESS)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         self.render_meshes(width, height)
