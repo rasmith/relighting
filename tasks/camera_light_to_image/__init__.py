@@ -46,7 +46,7 @@ cfg = {
     'target_transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),
     'task_name': f'{task_name}',
     'trainer' : 'gan',
-    'training_enabled': True, # to train this task
+    'training_enabled': False, # to train this task
     'transform' : None,
     'use_sampler': False, 
     'validation_split': .2,
