@@ -27,7 +27,7 @@ cfg = {
     # 'data_wrapper' : None,
     'dc_img' : f'dc_img/{task_name}',
     # 'enabled' : False,
-    'enabled' : True,  # to run this task
+    'enabled' : False,  # to run this task
     'eval_dir':f'eval/{task_name}',
     'evaluation_enabled': True, # to evaluate this task
     'image_dir' : 'out', # source "images"
@@ -46,7 +46,7 @@ cfg = {
     'target_transform' : Compose([ToTensor(), Normalize((0.5,), (1.0,))]),
     'task_name': f'{task_name}',
     'trainer' : 'gan',
-    'training_enabled': True, # to train this task
+    'training_enabled': False, # to train this task
     'transform' : None,
     'use_sampler': False, 
     'validation_split': .2,

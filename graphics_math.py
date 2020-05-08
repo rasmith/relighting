@@ -48,4 +48,17 @@ def quaternion(m):
   q = np.array([c, v[0] * s, v[1] * s, v[2] * s])
   return q
   
+def uniform_scale(value):
+  scale_matrix = np.eye(4)
+  scale_matrix[0, 0] = value
+  scale_matrix[1, 1] = value
+  scale_matrix[2, 2] = value
+  return scale_matrix
 
+
+def translate(tx, ty, tz):
+  translate_matrix = np.eye(4)
+  translate_matrix[0, 3] = tx
+  translate_matrix[1, 3] = ty
+  translate_matrix[2, 3] = tz
+  return translate_matrix
