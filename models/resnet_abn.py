@@ -1,8 +1,11 @@
 import os
 import torch.nn as nn
-os.environ['CC'] = '/opt/gcc-5.4.0/bin/gcc'
-os.environ['CXX'] = '/opt/gcc-5.4.0/bin/g++'
-from inplace_abn.modules.bn import InPlaceABN
+# os.environ['CC'] = '/opt/gcc-5.4.0/bin/gcc'
+# os.environ['CXX'] = '/opt/gcc-5.4.0/bin/g++'
+os.environ['CC'] = '/usr/bin/clang'
+os.environ['CXX'] = '/usr/bin/clang++'
+# from inplace_abn.modules.bn import InPlaceABN
+from inplace_abn import InPlaceABN
 
 def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""

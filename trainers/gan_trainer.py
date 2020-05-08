@@ -29,7 +29,8 @@ def perform_validation_step(img, target, generator, discriminator,\
     optimizer_generator, optimizer_discriminator,\
     criterion_pixel_l1, criterion_pixel_l2, criterion_gan, optimization_choice,\
     stats, cfg):
-    torch.cuda.empty_cache()
+    if cfg['device'] in 'cuda':
+        torch.cuda.empty_cache()
     
     with torch.no_grad():
       lambda_pixel = cfg['lambda_pixel']
@@ -63,7 +64,8 @@ def perform_validation_step(img, target, generator, discriminator,\
     del zeros
     del loss_gan_real
     del loss_gan_fake
-    torch.cuda.empty_cache()
+    if cfg['device'] in 'cuda':
+        torch.cuda.empty_cache()
 
     return loss_generator, loss_discriminator, loss_pixel_l1, loss_pixel_l2, output
 
@@ -71,7 +73,8 @@ def perform_gan_step(img, target, generator, discriminator,\
     optimizer_generator, optimizer_discriminator,\
     criterion_pixel_l1, criterion_pixel_l2, criterion_gan, optimization_choice,\
     stats, cfg):
-    torch.cuda.empty_cache()
+    if cfg['device'] in 'cuda':
+        torch.cuda.empty_cache()
     
     lambda_pixel = cfg['lambda_pixel']
     ones = Variable(Tensor(np.ones((img.size(0), 1, 1, 1))), requires_grad=False)
@@ -117,7 +120,8 @@ def perform_gan_step(img, target, generator, discriminator,\
     del zeros
     del loss_gan_real
     del loss_gan_fake
-    torch.cuda.empty_cache()
+    if cfg['device'] in 'cuda':
+        torch.cuda.empty_cache()
 
     return loss_generator, loss_discriminator, loss_pixel_l1, loss_pixel_l2, output
 
@@ -125,7 +129,8 @@ def perform_base_step(img, target, generator, discriminator,\
     optimizer_generator, optimizer_discriminator,\
     criterion_pixel_l1, criterion_pixel_l2, criterion_gan, optimization_choice,\
     stats, cfg):
-    torch.cuda.empty_cache()
+    if cfg['device'] in 'cuda':
+        torch.cuda.empty_cache()
     
     optimizer_generator.zero_grad()
 
@@ -137,7 +142,8 @@ def perform_base_step(img, target, generator, discriminator,\
     loss_pixel_l2.backward()
     optimizer_generator.step()
 
-    torch.cuda.empty_cache()
+    if cfg['device'] in 'cuda':
+        torch.cuda.empty_cache()
 
     return 0.0, 0.0, 0.0, loss_pixel_l2, output
 
@@ -155,13 +161,13 @@ def reset_stats(phase, data_size, stats):
   for k in reset_data.keys():
     stats[k] = reset_data[k]
 
-def initialize_stats(num_epochs):
+def initialize_stats(num_epochs, task_cfg):
   return {'phase':'', 'loss_discriminator':0.0, 'loss_generator':0.0, 'l1':0.0,\
        'l2':0.0, 'tp':0.0, 'etap':0.0, 't':0.0, 'eta':0.0,\
        'data_size': 0, 'training_step' : 0, \
        'validation_step': 0, 'global_training_step': 0,\
        'global_validation_step': 0, 'epoch': 0, 'num_epochs':num_epochs,\
-       'avg_training_time': 0.0, 'avg_validation_time': 0.0,\
+       'avg_training_time': 0.0, 'avg_validation_time': 0.0, 'cfg' : task_cfg,\
        'avg_epoch_time':0.0, 'optimization_choice':'none', 'annealed':False}
 
 def update_etas(phase, stats):
@@ -202,7 +208,7 @@ def update_progress_bar(stats):
           f" etap:{etap} eta:{eta}"
           f" {stats['global_training_step']}"
           f" {stats['global_validation_step']}"
-          f" {torch.cuda.memory_allocated()/(1024.0*1024.0):6.2f}"
+          # f" {torch.cuda.memory_allocated()/(1024.0*1024.0):6.2f}"
   )
   sys.stdout.write(" \r")
   sys.stdout.write(desc)
@@ -265,7 +271,7 @@ class GanTrainer(object):
       os.mkdir(dc_img)
     print(f'pytorch version = {torch.__version__}')
     print(f'num_epochs = {num_epochs} len(dataset) = {len(dataset)}')
-    training_stats = initialize_stats(num_epochs)
+    training_stats = initialize_stats(num_epochs, self.task_cfg)
     global_start = time.time()
     for epoch in range(num_epochs):
         epoch_start = time.time()

@@ -46,7 +46,7 @@ def run_trainer(package, importer, modname, ispkg, device, log_dir):
 
 def main():
   package = tasks
-  device = 'cuda'
+  device = 'cpu'
   log_dir='tensorboard/log'
 
   for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):

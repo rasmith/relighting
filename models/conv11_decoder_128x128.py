@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 import models.resnet_abn as r
-from inplace_abn.modules.bn import InPlaceABN
+# from inplace_abn.modules.bn import InPlaceABN
+from inplace_abn import InPlaceABN
 
 class Conv11Decoder128x128(nn.Module):
 

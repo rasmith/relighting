@@ -2,19 +2,25 @@ from OpenGL.GL import *
 
 class ShaderProgram(object):
 
-  def __init__(self, vertex, fragment):
+  def __init__(self, vertex, fragment, geometry = None):
     self.program_id = glCreateProgram()
     vs_id = self.add_shader(vertex, GL_VERTEX_SHADER)
     frag_id = self.add_shader(fragment, GL_FRAGMENT_SHADER)
+    if geometry is not None:
+        geom_id = self.add_shader(geometry, GL_GEOMETRY_SHADER)
 
     glAttachShader(self.program_id, vs_id)
     glAttachShader(self.program_id, frag_id)
+    if geometry is not None:
+        glAttachShader(self.program_id, geom_id)
     glLinkProgram(self.program_id)
 
     if glGetProgramiv(self.program_id, GL_LINK_STATUS) != GL_TRUE:
       info = glGetProgramInfoLog(self.program_id)
       glDeleteShader(vs_id)
       glDeleteShader(frag_id)
+      if geometry is not None:
+          glDeleteShader(geom_id)
       raise RuntimeError('Error linking program: %s' % (info))
 
   def add_shader(self, source, shader_type):
