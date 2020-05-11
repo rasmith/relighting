@@ -7,7 +7,6 @@ from torchvision.utils import save_image
 import os
 import torch
 import time
-import curses
 import numpy as np
 import sys
 # from tqdm import tqdm
@@ -381,7 +380,7 @@ class GanTrainer(object):
               if self.task_cfg['log_to_tensorboard']: 
                 pic = to_img(output.cpu().data)
                 save_image(pic, f'{dc_img}/image_{epoch:d}.png')
-                self.writer.add_image(f"{self.task_cfg['task_name']}-dc", pic,\
+                self.writer.add_images(f"{self.task_cfg['task_name']}-dc", pic,\
                                       epoch, time.time())
         training_stats['epoch'] += 1
     print('Saving...')

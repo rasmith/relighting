@@ -83,6 +83,6 @@ class Evaluator(object):
       print (f'pic.shape = {pic.shape} output.shape = {output.shape}')
       print (f'target.shape = {target.shape}')
       save_image(pic, f'./{eval_dir}/image_{img_number:04}.png')
-      # if i < 10:
-          # out = to_img(torch.cat((output, target)).cpu().data)
-          # self.writer.add_image(f'{self.task_cfg["task_name"]}-{i}-eval-{sampler_type}', out)
+      if i < 10:
+          out = to_img(torch.cat((output, target)).cpu().data)
+          self.writer.add_images(f'{self.task_cfg["task_name"]}-{i}-eval-{sampler_type}', out)

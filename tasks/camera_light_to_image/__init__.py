@@ -35,7 +35,7 @@ cfg = {
     'lambda_pixel': 100,
     'learning_rate' : 1e-4,
     'learning_rate_discriminator' : 1e-4,
-    'log_to_tensorboard': False,
+    'log_to_tensorboard': True,
     # 'num_epochs' : 200,
     'num_epochs' : 10,
     # 'num_epochs' : 16000,
