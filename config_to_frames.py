@@ -2,7 +2,6 @@ import numpy as np
 import json
 import argparse
 from graphics_math import *
-from pyquaternion import Quaternion
 
 parser = argparse.ArgumentParser(description="Process some integers.")
 parser.add_argument(

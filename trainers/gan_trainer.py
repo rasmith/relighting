@@ -24,6 +24,10 @@ def format_time(seconds):
     minutes, seconds = divmod(seconds, 60)
     return f'{int(hours)}:{int(minutes)}:{seconds:2.2f}'
 
+def get_lr(optimizer):
+    for param_group in optimizer.param_groups:
+            return param_group['lr']
+
 def perform_validation_step(img, target, generator, discriminator,\
     optimizer_generator, optimizer_discriminator,\
     criterion_pixel_l1, criterion_pixel_l2, criterion_gan, optimization_choice,\
@@ -163,6 +167,7 @@ def reset_stats(phase, data_size, stats):
 def initialize_stats(num_epochs, task_cfg):
   return {'phase':'', 'loss_discriminator':0.0, 'loss_generator':0.0, 'l1':0.0,\
        'l2':0.0, 'tp':0.0, 'etap':0.0, 't':0.0, 'eta':0.0,\
+       'lr_discriminator':1.0, 'lr_generator':1.0,\
        'data_size': 0, 'training_step' : 0, \
        'validation_step': 0, 'global_training_step': 0,\
        'global_validation_step': 0, 'epoch': 0, 'num_epochs':num_epochs,\
@@ -177,7 +182,8 @@ def update_etas(phase, stats):
                  (stats['num_epochs'] - stats['epoch'])
 
 def update_training_stats(phase, stats, optimization_choice,\
-  loss_discriminator,loss_generator, loss_pixel_l1, loss_pixel_l2, phase_start):
+  loss_discriminator, loss_generator, lr_discriminator, lr_generator, \
+  loss_pixel_l1, loss_pixel_l2, phase_start):
   step = f'{phase}_step'
   stats['optimization_choice'] = optimization_choice
   update_stat_average(stats, 'loss_generator', step, loss_generator)
@@ -185,6 +191,8 @@ def update_training_stats(phase, stats, optimization_choice,\
   update_stat_average(stats, 'l1', step, loss_pixel_l1)
   update_stat_average(stats, 'l2', step, loss_pixel_l2)
   current_time = time.time()
+  stats['lr_discriminator'] = lr_discriminator
+  stats['lr_generator'] = lr_generator
   add_stat(stats, 'tp', current_time  - phase_start)
   add_stat(stats, 't', current_time - phase_start)
   update_etas(phase, stats)
@@ -205,9 +213,11 @@ def update_progress_bar(stats):
           f"{optimization_choice} l2:{stats['l2']:6.4f} "
           f"l1:{stats['l1']:6.4f} "
           f" etap:{etap} eta:{eta}"
+          f" lrg: {stats['lr_generator']}"
+          f" lrd: {stats['lr_discriminator']}"
           f" {stats['global_training_step']}"
           f" {stats['global_validation_step']}"
-          # f" {torch.cuda.memory_allocated()/(1024.0*1024.0):6.2f}"
+          f" {torch.cuda.memory_allocated()/(1024.0*1024.0):6.2f}"
   )
   sys.stdout.write(" \r")
   sys.stdout.write(desc)
@@ -258,7 +268,9 @@ class GanTrainer(object):
     num_epochs = self.task_cfg['num_epochs']
     base_steps = self.task_cfg['base_steps']
     optimizer_generator = self.task_cfg['optimizer']
+    scheduler_generator = self.task_cfg['scheduler']
     optimizer_discriminator = self.task_cfg['optimizer_discriminator']
+    scheduler_discriminator = self.task_cfg['scheduler_discriminator']
     lambda_pixel = self.task_cfg['lambda_pixel']
     training_sampler = self.task_cfg['training_sampler']
     validation_sampler = self.task_cfg['validation_sampler']
@@ -330,8 +342,10 @@ class GanTrainer(object):
                                  criterion_gan, optimization_choice, training_stats,\
                                  self.task_cfg)
               #================update stats and progress bar===================
+              lr_generator = get_lr(optimizer_generator)
+              lr_discriminator = get_lr(optimizer_discriminator)
               update_training_stats(phase, training_stats, optimization_choice,\
-                loss_generator, loss_discriminator, loss_pixel_l1,\
+                loss_generator, loss_discriminator, lr_generator, lr_discriminator, loss_pixel_l1,\
                 loss_pixel_l2, phase_start)
               update_progress_bar(training_stats)
               training_stats[f'global_{phase}_step'] += 1
@@ -347,14 +361,26 @@ class GanTrainer(object):
                                         else loss_generator,
                                  'd': loss_discriminator.item() \
                                         if isinstance(loss_discriminator, torch.Tensor) \
-                                        else loss_discriminator}
+                                        else loss_discriminator,
+                                'lrg': lr_discriminator.item() \
+                                        if isinstance(lr_discriminator, torch.Tensor) \
+                                        else lr_discriminator,
+                                'lrd': lr_generator.item() \
+                                        if isinstance(lr_generator, torch.Tensor) \
+                                        else lr_generator 
+                               }
+
               del img
               del target
-              del loss_generator
-              del loss_discriminator
-              del loss_pixel_l1
-              del loss_pixel_l2
+              # del loss_generator
+              # del loss_discriminator
+              # del loss_pixel_l1
+              # del loss_pixel_l2
           del dataloader
+          if phase == 'training':
+            if training_stats['global_training_step'] > base_steps:
+              scheduler_generator.step(loss_generator)
+              scheduler_discriminator.step(loss_discriminator)
           phase_end = time.time()
           update_stat_average(training_stats, f'avg_{phase}_time',\
                               f'global_{phase}_step', phase_end - phase_start)
@@ -369,7 +395,6 @@ class GanTrainer(object):
                 {k:v.to('cpu') for k, v in generator.state_dict().items()}
               best_model_state_dict = OrderedDict(best_model_state_dict)
           sys.stdout.write("\n")
-
           epoch_end = time.time()
           #=========update stats and progress bar===================
           update_stat_average(training_stats, 'avg_epoch_time', 'epoch',\
@@ -383,5 +408,6 @@ class GanTrainer(object):
                 self.writer.add_images(f"{self.task_cfg['task_name']}-dc", pic,\
                                       epoch, time.time())
         training_stats['epoch'] += 1
+        torch.save(best_model_state_dict, f'./{weights_file}')
     print('Saving...')
     torch.save(best_model_state_dict, f'./{weights_file}')

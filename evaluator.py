@@ -15,7 +15,7 @@ def to_img(x):
     x = 0.5 * (x + 1)
     x = x.clamp(0, 1)
     x = x.view(x.size(0), 3, 128, 128)
-    return x
+    return x[:, [2, 1, 0]]
   
 class Evaluator(object):
   def __init__(self, cfg_loader, writer = None):
@@ -79,10 +79,11 @@ class Evaluator(object):
       print (f'value.shape = {value.shape}')
       output = model(value)
       pic = to_img(output.cpu().data)
+      target_pic = to_img(target.cpu().data)
       print (f'save_image ./{eval_dir}/image_{img_number:04}.png')
       print (f'pic.shape = {pic.shape} output.shape = {output.shape}')
       print (f'target.shape = {target.shape}')
-      save_image(pic, f'./{eval_dir}/image_{img_number:04}.png')
+      save_image(torch.cat((pic, target_pic)).cpu().data, f'./{eval_dir}/image_{img_number:04}.png')
       if i < 10:
           out = to_img(torch.cat((output, target)).cpu().data)
           self.writer.add_images(f'{self.task_cfg["task_name"]}-{i}-eval-{sampler_type}', out)
