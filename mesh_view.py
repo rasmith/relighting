@@ -3,7 +3,6 @@ import sys
 import graphics_math as gm
 import numpy as np
 
-# import pyigl as igl
 import igl
 import traceback
 from OpenGL.GL import *

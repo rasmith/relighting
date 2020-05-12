@@ -54,6 +54,8 @@ def to_numpy_img(x):
 
 
 def to_torch_pose(x):
+    # import pdb
+    # pdb.set_trace()
     x = torch.from_numpy(np.reshape(x, (1, 1, 1, 7)).astype(np.float32))
     x = Variable(x).cpu()
     return x
@@ -143,6 +145,8 @@ C, res, rank, svals = np.linalg.lstsq(A.T, f.T, rcond=None)
 radius = (np.linalg.norm(C[0:3]) ** 2 + C[3]) ** (1 / 2)
 print(f"C = {C}, R = {((np.linalg.norm(C[0:3]) ** 2) + C[3]) ** (1/2)}")
 print(f"C[0] = {C[0]}, C[1] = {C[1]}, C[2] = {C[2]}")
+sample_center = C
+sample_radius = radius
 
 app = GlfwApp()
 app.init()
@@ -219,6 +223,22 @@ class KeyCallbackHandler:
         obj = self.data.name_to_mesh_info[name]
         obj["M"] = np.linalg.multi_dot([obj["T"], obj["R"], obj["scale"]])
 
+    def render_current(self, name):
+        obj = self.data.name_to_mesh_info[name]
+        M = obj["M"]
+        q = gm.quaternion(M)
+        position = M[0:3, 3]
+        x, y, z  = position[0], position[1], position[2]
+        x, y, z = 2 * x, 2 * y, 2 * z
+        X = sample_center[0,0] + sample_radius[0] * x
+        Y = sample_center[1,0] + sample_radius[0] * y 
+        Z = sample_center[2,0] + sample_radius[0] * z 
+        provider.pose = [X, Y, Z, q[0], q[1], q[2], q[3]]
+        print("Render!")
+        print(C)
+        print(f"x = {x}, y = {y}, z = {z}")
+        
+
     def key_handler(self, key, scancode, action, mods):
         if key == glfw.KEY_W and action == glfw.PRESS:
             self.update_translation("axes", 0, 0, 0.025)
@@ -245,9 +265,31 @@ class KeyCallbackHandler:
         elif key == glfw.KEY_L and action == glfw.PRESS:
             self.update_orientation("axes", 2, -0.25)
         elif key == glfw.KEY_SPACE and action == glfw.PRESS:
-            print("Render!")
+            self.render_current("axes")
         obj = self.data.name_to_mesh_info["axes"]
         self.update_model_matrix("axes")
+
+
+class ImageProvider:
+    def __init__(self, model):
+        self.model = model
+        self.current_image = None
+
+    def __call__(self):
+        return self.current_image
+
+    @property
+    def pose(self):
+        return self.current_pose
+
+    @pose.setter
+    def pose(self, new_pose):
+        self.current_pose = new_pose 
+        if self.current_image is None:
+            self.current_image = to_numpy_img(self.model(to_torch_pose(new_pose)))
+        else:
+            rendered_image = to_numpy_img(self.model(to_torch_pose(new_pose)))
+            np.copyto(self.current_image, rendered_image)
 
 
 multi_mesh_view = MultiMeshView()
@@ -270,12 +312,10 @@ multi_controller.add(mesh_controller)
 image_fragment_shader = "image_fragment.glsl"
 image_vertex_shader = "image_vertex.glsl"
 
-output_image = (
-    to_numpy_img(model(to_torch_pose(poses[0])))
-    if load_model
-    else checker_board()
-)
-
+provider = ImageProvider(model) if load_model else None
+if load_model:
+    provider.pose = poses[0]
+output_image = provider if load_model else checker_board()
 image_model = ImageModel(output_image)
 image_view = ImageView(image_fragment_shader, image_vertex_shader)
 

@@ -19,10 +19,20 @@ class ImageModel(GlfwModel):
     def initialize(self):
         if self.provider_type is str:
             self.image_path = provider
-            self.image = io.imread(self.image_path)
+            self.imag_value  = io.imread(self.image_path)
         elif self.provider_type is np.ndarray:
-            self.image = self.provider
-        self.image_byte_count = ArrayDatatype.arrayByteCount(self.image)
+            self.image_value  = self.provider
+        elif callable(self.provider):
+            self.image_value = self.provider()
+
+        self.image_byte_count = ArrayDatatype.arrayByteCount(self.image_value)
+
+    @property
+    def image(self):
+        if callable(self.provider):
+            return self.provider()
+        return self.image_value
+
 
 class ImageView(GlfwView):
     def __init__(self, fragment_shader_path, vertex_shader_path):
@@ -47,6 +57,7 @@ class ImageView(GlfwView):
           ]).astype(dtype=np.float32, order='C')
         self.texture_byte_count = ArrayDatatype.arrayByteCount(self.texture_data)
         self.image_loaded = False
+        self.image_storage_initialized = False 
 
     def update_vbos(self):
         glBindVertexArray(self.vao_id)
@@ -146,8 +157,12 @@ class ImageView(GlfwView):
         glBindTexture(GL_TEXTURE_2D, self.texture_id)
 
         image_width, image_height, image_channels = self.model.image.shape
-        if not self.image_loaded:
-            glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB8, image_width, image_height)
+        if not self.image_loaded or callable(self.model.provider):
+            if not self.image_storage_initialized:
+                glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB8, image_width, image_height)
+                self.image_storage_initialized = True
+            print(f"Get the image, pose = {self.model.provider.current_pose}.")
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image_width, image_height,
                             GL_RGB, GL_UNSIGNED_BYTE, self.model.image)
             self.image_loaded = True
