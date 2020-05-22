@@ -7,6 +7,7 @@ from graphics_math import lookat
 import re
 from video_capture import VideoCapture
 import cv2 as cv
+from scipy.spatial.transform import Rotation as R
 
 def normalize_numpy_array(values):
     max_vals = values[0]
@@ -56,8 +57,16 @@ class CameraLightDataset(data.Dataset):
         return len(self.poses)
 
     def __getitem__(self, idx):
-        pose = np.reshape(self.poses[idx][1], (1, len(self.poses[idx][1]))).astype(np.float32) 
-        pose = torch.from_numpy(pose).view(1, 1, 10)
+        pose = self.poses[idx][1]
+        t, q, l = pose[0:3], pose[3:7], pose[7:]
+        r = R.from_quat(q)
+        a = r.as_rotvec()
+        pose = np.concatenate((t, a, l), axis = 0)
+        pose = np.reshape(pose, (1, len(pose))).astype(np.float32) 
+        pose = torch.from_numpy(pose).view(1, 1, 9)
+        
+        # pose = np.reshape(self.poses[idx][1], (1, len(self.poses[idx][1]))).astype(np.float32) 
+        # pose = torch.from_numpy(pose).view(1, 1, 10)
         image = self.frames[idx]
         if self.transform is not None:
             pose = self.transform(pose)

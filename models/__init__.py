@@ -10,3 +10,4 @@ from models.discriminator import Discriminator
 from models.precoder import Precoder
 from models.precoded_resnet18_128x128_encoder import PrecodedResnet18Encoder128x128
 from models.precoded_discriminator import PrecodedDiscriminator
+from models.small_precoder import SmallPrecoder

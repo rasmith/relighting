@@ -17,7 +17,7 @@ def to_img(x):
     x = 0.5 * (x + 1)
     x = x.clamp(0, 1)
     x = x.view(x.size(0), 3, 128, 128)
-    return x
+    return x[:, [2, 1, 0]]
 
 def format_time(seconds):
     hours, seconds = divmod(seconds, 3600) 
@@ -37,8 +37,8 @@ def perform_validation_step(img, target, generator, discriminator,\
     
     with torch.no_grad():
       lambda_pixel = cfg['lambda_pixel']
-      ones = Variable(Tensor(np.ones((img.size(0), 1, 1, 1))), requires_grad=False)
-      zeros= Variable(Tensor(np.zeros((img.size(0), 1, 1, 1))), requires_grad=False)
+      ones = Variable(Tensor(np.ones((img.size(0), 1, 128, 128))), requires_grad=False)
+      zeros= Variable(Tensor(np.zeros((img.size(0), 1, 128, 128))), requires_grad=False)
       if cfg['device'] in 'cuda':
         ones = ones.cuda()
         zeros = zeros.cuda()
@@ -55,7 +55,6 @@ def perform_validation_step(img, target, generator, discriminator,\
 
       realness = discriminator(target, img)
       loss_gan_real = criterion_gan(realness, ones)
-
       fakeness = discriminator(output.detach(), img)
       loss_gan_fake = criterion_gan(fakeness, zeros)
 
@@ -72,7 +71,7 @@ def perform_validation_step(img, target, generator, discriminator,\
 
     return loss_generator, loss_discriminator, loss_pixel_l1, loss_pixel_l2, output
 
-def perform_gan_step(img, target, generator, discriminator,\
+def perform_gan_step(input_values, target, generator, discriminator,\
     optimizer_generator, optimizer_discriminator,\
     criterion_pixel_l1, criterion_pixel_l2, criterion_gan, optimization_choice,\
     stats, cfg):
@@ -80,42 +79,91 @@ def perform_gan_step(img, target, generator, discriminator,\
         torch.cuda.empty_cache()
     
     lambda_pixel = cfg['lambda_pixel']
-    ones = Variable(Tensor(np.ones((img.size(0), 1, 1, 1))), requires_grad=False)
-    zeros= Variable(Tensor(np.zeros((img.size(0), 1, 1, 1))), requires_grad=False)
+    ones = Variable(Tensor(np.ones((input_values.size(0), 1, 128, 128))), requires_grad=False)
+    zeros= Variable(Tensor(np.zeros((input_values.size(0), 1, 128, 128))), requires_grad=False)
 
     if cfg['device'] in 'cuda':
       ones = ones.cuda()
       zeros = zeros.cuda()
 
-    # =============train generator===================
+    #==============train discriminator===============
+    # Goal: maximize log(D(y, x)) + log(1 - D(G(x, z), x))
+
+    # Train with real batch.
+    optimizer_discriminator.zero_grad()
+
+    realness = discriminator(target, input_values) # get D(y, x)
+    try:
+      loss_gan_real = criterion_gan(realness, ones) # log D(y, x)
+    except:
+      print(f"realness.shape = {realnes.shape} ones.shape = {ones.shape}")
+
+    # Train with fake batch.
+    output = generator(input_values) # prediction with generator
+    fakeness = discriminator(output.detach(), input_values.detach()) # D(G(x, z), x)
+    try:
+      loss_gan_fake = criterion_gan(fakeness, zeros) # log D(1 - D(G(x, z), x))
+    except:
+      print(f"fakeness.shape = {fakeness.shape} zeros.shape = {zeros.shape}")
+
+    loss_discriminator = 0.5 * (loss_gan_real + loss_gan_fake)
+    
+    loss_discriminator.backward()
+    optimizer_discriminator.step()
+
+    #=============train_generator====================
+    # Goal: maximize log D(G(x, z), x)
+    # x: input value
+    # z: noise
+    # G(x, z) generated value based on x
+
     optimizer_generator.zero_grad()
 
-    output = generator(img) # prediction with generator
+    fakeness = discriminator(output, input_values)
 
-    loss_pixel_l1 = criterion_pixel_l1(output, target) # get pixel-wise l1 loss
-    loss_pixel_l2 = criterion_pixel_l2(output, target) # get pixel-wise l2 loss
+    loss_pixel_l1 = criterion_pixel_l1(output, target)
 
-    fakeness = discriminator(output, img) # ask discriminator how fake this is
-    loss_gan =  criterion_gan(fakeness, ones) # get discriminator loss
-    loss_generator = loss_gan + lambda_pixel * loss_pixel_l1    
+    try:
+      loss_generator = criterion_gan(fakeness, ones) + loss_pixel_l1 # log D(G(x, z), x)
+    except:
+      print(f"fakeness.shape = {fakeness.shape} ones.shape = {ones.shape}")
 
     loss_generator.backward()
     optimizer_generator.step()
-    # =============train discriminator===================
-    optimizer_discriminator.zero_grad()
 
-    # real loss
-    realness = discriminator(target, img)
-    loss_gan_real = criterion_gan(realness, ones)
+    with torch.no_grad():
+      loss_pixel_l1 = criterion_pixel_l1(output, target) # get pixel-wise l1 loss
+      loss_pixel_l2 = criterion_pixel_l2(output, target) # get pixel-wise l2 loss
 
-    # fake loss
-    fakeness = discriminator(output.detach(), img)
-    loss_gan_fake = criterion_gan(fakeness, zeros)
+    # # =============train generator===================
+    # optimizer_generator.zero_grad()
 
-    loss_discriminator = 0.5 * (loss_gan_real + loss_gan_fake)
+    # output = generator(img) # prediction with generator
 
-    loss_discriminator.backward()
-    optimizer_discriminator.step()
+    # loss_pixel_l1 = criterion_pixel_l1(output, target) # get pixel-wise l1 loss
+    # loss_pixel_l2 = criterion_pixel_l2(output, target) # get pixel-wise l2 loss
+
+    # fakeness = discriminator(output, img) # ask discriminator how fake this is
+    # loss_gan =  criterion_gan(fakeness, ones) # get discriminator loss
+    # loss_generator = loss_gan + lambda_pixel * loss_pixel_l1    
+
+    # loss_generator.backward()
+    # optimizer_generator.step()
+    # # =============train discriminator===================
+    # optimizer_discriminator.zero_grad()
+
+    # # real loss
+    # realness = discriminator(target, img) # D(y, x)
+    # loss_gan_real = criterion_gan(realness, ones) # log D(y, x)
+
+    # # fake loss
+    # fakeness = discriminator(output.detach(), img) # D(G(x, z), x)
+    # loss_gan_fake = criterion_gan(fakeness, zeros)  # log D(1 - D(G(x, z), x))
+
+    # loss_discriminator = 0.5 * (loss_gan_real + loss_gan_fake)
+
+    # loss_discriminator.backward()
+    # optimizer_discriminator.step()
 
     del fakeness
     del realness
@@ -140,9 +188,13 @@ def perform_base_step(img, target, generator, discriminator,\
     output = generator(img) # prediction with generator
 
     loss_pixel_l2 = criterion_pixel_l2(output, target) # get pixel-wise l2 loss
+    loss_pixel_l1 = criterion_pixel_l1(output, target)
 
+    loss_base = 0.5 * (loss_pixel_l1 + loss_pixel_l2)
 
-    loss_pixel_l2.backward()
+    loss_base.backward()
+
+    # loss_pixel_l2.backward()
     optimizer_generator.step()
 
     if cfg['device'] in 'cuda':
@@ -408,6 +460,6 @@ class GanTrainer(object):
                 self.writer.add_images(f"{self.task_cfg['task_name']}-dc", pic,\
                                       epoch, time.time())
         training_stats['epoch'] += 1
-        torch.save(best_model_state_dict, f'./{weights_file}')
+        # torch.save(best_model_state_dict, f'./{weights_file}')
     print('Saving...')
     torch.save(best_model_state_dict, f'./{weights_file}')

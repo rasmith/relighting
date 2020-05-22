@@ -18,14 +18,14 @@ task_name = 'camera_light_to_image'
 cfg = {
     'annealing_step' : 1000,
     # 'batch_size' : 32,
-    'batch_size' : 8,
-    'base_steps' : int(32/8),
+    'batch_size' : 32,
+    'base_steps' : int(500),
     'cfg_file' : 'config.cfg',
     'criterion' : nn.MSELoss(),
-    'criterion_gan': nn.BCELoss(),
+    'criterion_gan': nn.BCEWithLogitsLoss(),
     'criterion_pixel_l1': nn.L1Loss(),
     # 'data_wrapper' : None,
-    'data_wrapper' : (lambda x : Subset(x, range(32))),
+    'data_wrapper' : (lambda x : Subset(x, range(256))),
     # 'data_wrapper' : None,
     'dc_img' : f'dc_img/{task_name}',
     # 'enabled' : False,
@@ -39,7 +39,7 @@ cfg = {
     'learning_rate_discriminator' : 1e-4,
     'log_to_tensorboard': True,
     # 'num_epochs' : 200,
-    'num_epochs' : 2000,
+    'num_epochs' : 500,
     # 'num_epochs' : 16000,
     'phases': ['training', 'validation'],
     'seed': (lambda : 42),
@@ -98,13 +98,13 @@ class CfgLoader(object):
       self.cfg['wrapped_dataset'] = self.cfg['data_wrapper'](self.cfg['dataset'])
     else :
       self.cfg['wrapped_dataset'] = self.cfg['dataset']
-    self.cfg['encoder'] = r.PrecodedResnet18Encoder128x128(10)
+    self.cfg['encoder'] = r.PrecodedResnet18Encoder128x128(9)
     self.cfg['decoder'] = r.Conv11Decoder128x128()
     self.cfg['activation'] = nn.Tanh()
     self.cfg['model'] = r.EncoderDecoder(self.cfg['encoder'],\
                                          self.cfg['decoder'],\
                                          self.cfg['activation'])
-    self.cfg['discriminator'] = r.PrecodedDiscriminator(10)
+    self.cfg['discriminator'] = r.PrecodedDiscriminator(9)
     if device in 'cuda':
       self.cfg['model'] = self.cfg['model'].cuda()
       self.cfg['discriminator'] = self.cfg['discriminator'].cuda()
