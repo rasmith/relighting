@@ -17,10 +17,12 @@ output_file = args.destination
 
 d = json.loads(open(input_file).read())
 
-f = lambda k: int(k)
+dest_file = open(output_file, 'w')
+
+sort_key  = lambda k: int(k)
 frame_number = 1
-for i in sorted(d.keys(), key=f):
-    for j in sorted(d[i].keys(), key=f):
+for i in sorted(d.keys(), key=sort_key):
+    for j in sorted(d[i].keys(), key=sort_key):
         # print(f'i = {i} j = {j} {d[i][j].keys()}')
         info = d[i][j]
         m = lookat(
@@ -32,7 +34,8 @@ for i in sorted(d.keys(), key=f):
         r = m[0:3, 0:3]
         q = quaternion(r)
         t = m[0:3, 3]
-        print(
-            f"{frame_number} {t[0]} {t[1]} {t[2]} {q[0]} {q[1]} {q[2]} {q[3]} {l[0]} {l[1]} {l[2]}"
+        dest_file.write(
+            f"{frame_number} {t[0]} {t[1]} {t[2]} {q[0]} {q[1]} {q[2]} {q[3]} {l[0]} {l[1]} {l[2]}\n"
         )
         frame_number += 1
+dest_file.close()
