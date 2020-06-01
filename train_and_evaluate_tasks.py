@@ -15,6 +15,8 @@ from multiprocessing import Process
 def run_trainer(package, modname, ispkg, device, log_dir, use_argv):
   print('--------------------------------------------')
   print(f'Task:{modname}')
+  if 'cuda' in device:
+      torch.cuda.set_device(device)
   target_task = importlib.import_module(f'{package.__name__}.{modname}')
   enabled = target_task.cfg['enabled'] \
             if 'enabled' in target_task.cfg else False
@@ -59,8 +61,8 @@ def run_trainer(package, modname, ispkg, device, log_dir, use_argv):
 
 def main():
   package = tasks
-  device = 'cuda'
-  log_dir='tensorboard/log11'
+  device = 'cuda:0'
+  log_dir='tensorboard/log10'
 
   if len(sys.argv) <= 1:
     for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):

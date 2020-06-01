@@ -18,8 +18,8 @@ task_name = 'camera_light_to_image'
 cfg = {
     'annealing_step' : 1000,
     # 'batch_size' : 32,
-    'batch_size' : 8,
-    'base_steps' : int(5),
+    'batch_size' : 32,
+    'base_steps' : int(250),
     'cfg_file' : 'config.cfg',
     'criterion' : nn.MSELoss(),
     'criterion_gan': nn.BCEWithLogitsLoss(),
@@ -47,7 +47,8 @@ cfg = {
     'required_command_line_arguments': ['eval_dir',
                                         'discriminator_layers',
                                         'log_dir',
-                                        'target_dir'],
+                                        'target_dir',
+                                        'weights_dir'],
     'seed': (lambda : 42),
     'shuffle': True,
     'target_dir': f'targets/{task_name}',
@@ -60,6 +61,7 @@ cfg = {
     'validation_split': .2,
     'weight_decay': 2e-6,
     'weight_decay_discriminator': 2e-5,
+    'weights_dir' : 'weights',
     'weights_file' : f'weights/{task_name}.pth'
 }
 
@@ -110,8 +112,8 @@ class CfgLoader(object):
     self.cfg['model'] = r.EncoderDecoder(self.cfg['encoder'],\
                                          self.cfg['decoder'],\
                                          self.cfg['activation'])
-    self.cfg['discriminator'] = r.PrecodedDiscriminator(num_layers = 5, num_input_channels = 9)
-    if device in 'cuda':
+    self.cfg['discriminator'] = r.PrecodedDiscriminator(num_layers = self.cfg['discriminator_layers'], num_input_channels = 9)
+    if 'cuda' in device:
       self.cfg['model'] = self.cfg['model'].cuda()
       self.cfg['discriminator'] = self.cfg['discriminator'].cuda()
       self.cfg['criterion'] = self.cfg['criterion'].cuda()
@@ -146,5 +148,6 @@ class CfgLoader(object):
                                           validation_indices)
     self.cfg['training_sampler'] = None
     self.cfg['validation_sampler'] = None
+    self.cfg['weights_file'] = f'{self.cfg["weights_dir"]}/{task_name}.pth'
     return self.cfg
 
