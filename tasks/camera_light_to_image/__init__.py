@@ -19,7 +19,7 @@ cfg = {
     'annealing_step' : 1000,
     # 'batch_size' : 32,
     'batch_size' : 32,
-    'base_steps' : int(500),
+    'base_steps' : int(250),
     'cfg_file' : 'config.cfg',
     'criterion' : nn.MSELoss(),
     'criterion_gan': nn.BCEWithLogitsLoss(),
@@ -105,7 +105,8 @@ class CfgLoader(object):
                                          self.cfg['decoder'],\
                                          self.cfg['activation'])
     self.cfg['discriminator'] = r.PrecodedDiscriminator(9)
-    if device in 'cuda':
+    if 'cuda' in device:
+    # if device in 'cuda':
       self.cfg['model'] = self.cfg['model'].cuda()
       self.cfg['discriminator'] = self.cfg['discriminator'].cuda()
       self.cfg['criterion'] = self.cfg['criterion'].cuda()

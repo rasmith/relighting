@@ -32,14 +32,14 @@ def perform_validation_step(img, target, generator, discriminator,\
     optimizer_generator, optimizer_discriminator,\
     criterion_pixel_l1, criterion_pixel_l2, criterion_gan, optimization_choice,\
     stats, cfg):
-    if cfg['device'] in 'cuda':
+    if 'cuda' in cfg['device']:
         torch.cuda.empty_cache()
     
     with torch.no_grad():
       lambda_pixel = cfg['lambda_pixel']
       ones = Variable(Tensor(np.ones((img.size(0), 1, 128, 128))), requires_grad=False)
       zeros= Variable(Tensor(np.zeros((img.size(0), 1, 128, 128))), requires_grad=False)
-      if cfg['device'] in 'cuda':
+      if 'cuda' in cfg['device']:
         ones = ones.cuda()
         zeros = zeros.cuda()
 
@@ -66,7 +66,7 @@ def perform_validation_step(img, target, generator, discriminator,\
     del zeros
     del loss_gan_real
     del loss_gan_fake
-    if cfg['device'] in 'cuda':
+    if 'cuda' in cfg['device']:
         torch.cuda.empty_cache()
 
     return loss_generator, loss_discriminator, loss_pixel_l1, loss_pixel_l2, output
@@ -75,14 +75,14 @@ def perform_gan_step(input_values, target, generator, discriminator,\
     optimizer_generator, optimizer_discriminator,\
     criterion_pixel_l1, criterion_pixel_l2, criterion_gan, optimization_choice,\
     stats, cfg):
-    if cfg['device'] in 'cuda':
+    if 'cuda' in cfg['device']:
         torch.cuda.empty_cache()
     
     lambda_pixel = cfg['lambda_pixel']
     ones = Variable(Tensor(np.ones((input_values.size(0), 1, 128, 128))), requires_grad=False)
     zeros= Variable(Tensor(np.zeros((input_values.size(0), 1, 128, 128))), requires_grad=False)
 
-    if cfg['device'] in 'cuda':
+    if 'cuda' in cfg['device']:
       ones = ones.cuda()
       zeros = zeros.cuda()
 
@@ -171,7 +171,7 @@ def perform_gan_step(input_values, target, generator, discriminator,\
     del zeros
     del loss_gan_real
     del loss_gan_fake
-    if cfg['device'] in 'cuda':
+    if 'cuda' in cfg['device']:
         torch.cuda.empty_cache()
 
     return loss_generator, loss_discriminator, loss_pixel_l1, loss_pixel_l2, output
@@ -180,7 +180,7 @@ def perform_base_step(img, target, generator, discriminator,\
     optimizer_generator, optimizer_discriminator,\
     criterion_pixel_l1, criterion_pixel_l2, criterion_gan, optimization_choice,\
     stats, cfg):
-    if cfg['device'] in 'cuda':
+    if 'cuda' in cfg['device']:
         torch.cuda.empty_cache()
     
     optimizer_generator.zero_grad()
@@ -197,7 +197,7 @@ def perform_base_step(img, target, generator, discriminator,\
     # loss_pixel_l2.backward()
     optimizer_generator.step()
 
-    if cfg['device'] in 'cuda':
+    if 'cuda' in cfg['device']:
         torch.cuda.empty_cache()
 
     return 0.0, 0.0, 0.0, loss_pixel_l2, output
@@ -293,6 +293,7 @@ class GanTrainer(object):
     print(f"selected device = {which_device}")
     self.selected_device = which_device
     self.task_cfg = self.cfg_loader.get_cfg(which_device)
+    torch.cuda.set_device(self.selected_device)
     self.initialized = True
 
   def check(self):
