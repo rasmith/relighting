@@ -4,11 +4,10 @@ import argparse
 from graphics_math import *
 
 parser = argparse.ArgumentParser(description="Process some integers.")
-parser.add_argument(
-    "--destination", dest="destination", help="destination file"
-)
+parser.add_argument("--destination",
+                    dest="destination",
+                    help="destination file")
 parser.add_argument("--source", dest="source", help="input file to convert")
-
 
 args = parser.parse_args()
 
@@ -19,7 +18,7 @@ d = json.loads(open(input_file).read())
 
 dest_file = open(output_file, 'w')
 
-sort_key  = lambda k: int(k)
+sort_key = lambda k: int(k)
 frame_number = 1
 for i in sorted(d.keys(), key=sort_key):
     for j in sorted(d[i].keys(), key=sort_key):
@@ -35,7 +34,7 @@ for i in sorted(d.keys(), key=sort_key):
         q = quaternion(r)
         t = m[0:3, 3]
         dest_file.write(
-            f"{frame_number} {t[0]} {t[1]} {t[2]} {q[0]} {q[1]} {q[2]} {q[3]} {l[0]} {l[1]} {l[2]}\n"
-        )
+            f"{frame_number} {t[0]} {t[1]} {t[2]} {q[0]} {q[1]} {q[2]} {q[3]} "
+            + f"{l[0]} {l[1]} {l[2]}\n")
         frame_number += 1
 dest_file.close()

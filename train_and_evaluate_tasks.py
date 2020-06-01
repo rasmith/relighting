@@ -3,14 +3,16 @@ from evaluator import Evaluator
 from tensorboardX import SummaryWriter 
 from trainers.trainer import Trainer
 from trainers.gan_trainer import GanTrainer
+import argparse
 import importlib
 import pkgutil
 import tasks
 import time
 import torch
+import sys
 from multiprocessing import Process
 
-def run_trainer(package, importer, modname, ispkg, device, log_dir):
+def run_trainer(package, modname, ispkg, device, log_dir):
   print('--------------------------------------------')
   print(f'Task:{modname}')
   target_task = importlib.import_module(f'{package.__name__}.{modname}')
@@ -21,8 +23,18 @@ def run_trainer(package, importer, modname, ispkg, device, log_dir):
   evaluation_enabled = target_task.cfg['evaluation_enabled'] \
             if 'evaluation_enabled' in target_task.cfg else True
   if enabled:
-      writer = SummaryWriter(f'{log_dir}/{time.ctime()}')
       cfg_loader = target_task.CfgLoader()
+      if 'required_command_line_arguments' in target_task.cfg:
+        parser = argparse.ArgumentParser()
+        parser.add_argument(f'--task', help = "Task to run.")
+        for keyword in target_task.cfg['required_command_line_arguments']:
+          parser.add_argument(f'--{keyword}', help = "")
+        args = parser.parse_args()
+        for keyword in target_task.cfg['required_command_line_arguments']:
+          target_task.cfg[keyword] = getattr(args, keyword)
+        if 'log_dir' in target_task.cfg['required_command_line_arguments']:
+          log_dir = target_task.cfg['log_dir']
+      writer = SummaryWriter(f'{log_dir}/{time.ctime()}')
       if training_enabled:
         print(f'{modname} is enabled for training ...')
         t = GanTrainer(cfg_loader, writer) \
@@ -49,11 +61,19 @@ def main():
   device = 'cuda'
   log_dir='tensorboard/log11'
 
-  for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
-    p = Process(target = run_trainer,\
-                args = (package, importer, modname, ispkg, device, log_dir))
-    p.start()
-    p.join()
+  if len(sys.argv) <= 1:
+    for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
+      p = Process(target = run_trainer,\
+                  args = (package, modname, ispkg, device, log_dir))
+      p.start()
+      p.join()
+  else:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--task', help='Task to process.')
+    args, argv = parser.parse_known_args()  
+    modname = args.task
+    ispkg = True
+    run_trainer(package, modname, ispkg, device, log_dir)
 
 if __name__ == "__main__":
   main()
