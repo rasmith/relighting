@@ -12,7 +12,7 @@ import torch
 import sys
 from multiprocessing import Process
 
-def run_trainer(package, modname, ispkg, device, log_dir):
+def run_trainer(package, modname, ispkg, device, log_dir, use_argv):
   print('--------------------------------------------')
   print(f'Task:{modname}')
   target_task = importlib.import_module(f'{package.__name__}.{modname}')
@@ -24,16 +24,17 @@ def run_trainer(package, modname, ispkg, device, log_dir):
             if 'evaluation_enabled' in target_task.cfg else True
   if enabled:
       cfg_loader = target_task.CfgLoader()
-      if 'required_command_line_arguments' in target_task.cfg:
-        parser = argparse.ArgumentParser()
-        parser.add_argument(f'--task', help = "Task to run.")
-        for keyword in target_task.cfg['required_command_line_arguments']:
-          parser.add_argument(f'--{keyword}', help = "")
-        args = parser.parse_args()
-        for keyword in target_task.cfg['required_command_line_arguments']:
-          target_task.cfg[keyword] = getattr(args, keyword)
-        if 'log_dir' in target_task.cfg['required_command_line_arguments']:
-          log_dir = target_task.cfg['log_dir']
+      if use_argv:
+        if 'required_command_line_arguments' in target_task.cfg:
+          parser = argparse.ArgumentParser()
+          parser.add_argument(f'--task', help = "Task to run.")
+          for keyword in target_task.cfg['required_command_line_arguments']:
+            parser.add_argument(f'--{keyword}', help = "")
+          args = parser.parse_args()
+          for keyword in target_task.cfg['required_command_line_arguments']:
+            target_task.cfg[keyword] = getattr(args, keyword)
+          if 'log_dir' in target_task.cfg['required_command_line_arguments']:
+            log_dir = target_task.cfg['log_dir']
       writer = SummaryWriter(f'{log_dir}/{time.ctime()}')
       if training_enabled:
         print(f'{modname} is enabled for training ...')
@@ -64,7 +65,7 @@ def main():
   if len(sys.argv) <= 1:
     for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
       p = Process(target = run_trainer,\
-                  args = (package, modname, ispkg, device, log_dir))
+                  args = (package, modname, ispkg, device, log_dir, False))
       p.start()
       p.join()
   else:
@@ -73,7 +74,7 @@ def main():
     args, argv = parser.parse_known_args()  
     modname = args.task
     ispkg = True
-    run_trainer(package, modname, ispkg, device, log_dir)
+    run_trainer(package, modname, ispkg, device, log_dir, True)
 
 if __name__ == "__main__":
   main()
