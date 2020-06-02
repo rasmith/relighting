@@ -112,7 +112,7 @@ class CfgLoader(object):
     self.cfg['model'] = r.EncoderDecoder(self.cfg['encoder'],\
                                          self.cfg['decoder'],\
                                          self.cfg['activation'])
-    self.cfg['discriminator'] = r.PrecodedDiscriminator(num_layers = self.cfg['discriminator_layers'], num_input_channels = 9)
+    self.cfg['discriminator'] = r.PrecodedDiscriminator(num_layers = int(self.cfg['discriminator_layers']), num_input_channels = 9)
     if 'cuda' in device:
       self.cfg['model'] = self.cfg['model'].cuda()
       self.cfg['discriminator'] = self.cfg['discriminator'].cuda()
