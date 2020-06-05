@@ -6,7 +6,7 @@ class SmallPrecoder(nn.Module):
         def __init__(self, input_dims):
             super(SmallPrecoder, self).__init__()
             self.input_dims = input_dims
-            self.fc0 = nn.Linear(self.input_dims, 49152)
+            self.fc0 = nn.Linear(self.input_dims,  128*128*3)
             self.sig0 = nn.Sigmoid()
         def forward(self, x):
             # print(f'x.shape = {x.shape}')

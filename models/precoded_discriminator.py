@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import models.small_precoder as p
 
+from torch.utils.checkpoint import checkpoint_sequential
 
 class Identity(nn.Module):
     def forward(self, x):
@@ -13,15 +14,15 @@ class PrecodedDiscriminator(nn.Module):
                  num_layers,
                  num_input_channels,
                  precoder_layer=p.SmallPrecoder,
-                 normalization_layer=Identity):
+                 normalization_layer=nn.BatchNorm2d):
         super(PrecodedDiscriminator, self).__init__()
         conv_layer = lambda i: nn.Conv2d(max(2**(i + 2), 6),
                                          2**(i + 3),
                                          kernel_size=1,
                                          stride=1,
                                          padding=0)
-        relu_layer = lambda i: nn.LeakyReLU(0.2, inplace=True)
-        norm_layer = lambda i: normalization_layer()
+        relu_layer = lambda i: nn.LeakyReLU(0.2, inplace=False)
+        norm_layer = lambda i: normalization_layer(2**(i+3))
         self.precoder = precoder_layer(num_input_channels)
         self.layers = []
         for i in range(num_layers):
@@ -39,6 +40,7 @@ class PrecodedDiscriminator(nn.Module):
 
     def forward(self, x, y):
         y = self.precoder(y)
+        # print(f"x.shape = {x.shape} y.shape = {y.shape}")
         x = torch.cat((x, y), 1)
-        x = self.model(x)
+        x = checkpoint_sequential(self.model, len(self.layers), x)
         return x
